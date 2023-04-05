@@ -170,6 +170,7 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Sphere},Not
         hr = hit(object, ray)
         if !isnothing(hr) && hr.distance < distance
             result = hr, object
+            distance = hr.distance
         end
     end
 
