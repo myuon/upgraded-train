@@ -100,6 +100,7 @@ struct Sphere
     center::Vec3
     radius::Float64
     color::RGB
+    emit::RGB
 end
 
 struct HitRecord
@@ -155,44 +156,53 @@ end
 
 struct Scene
     camera::Camera
+    screensize::Int
     objects::Vector{Sphere}
 end
 
 function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Sphere},Nothing}
+    distance = Inf
+    result = nothing
+
     for object in scene.objects
         hr = hit(object, ray)
-        if !isnothing(hr)
-            return hr, object
+        if !isnothing(hr) && hr.distance < distance
+            result = hr, object
         end
     end
 
-    return nothing
+    return result
 end
 
 function render(scene::Scene, size::Tuple{Int,Int})::Image
     result = Image(size)
     spp = 1
 
-    screenx = normalize(cross(scene.camera.direction, scene.camera.up))
-    screeny = normalize(cross(screenx, scene.camera.direction))
+    screenx = normalize(cross(scene.camera.direction, scene.camera.up)) * scene.screensize
+    screeny = normalize(cross(screenx, scene.camera.direction)) * (scene.screensize / size[1] * size[2])
     screencenter = scene.camera.origin + scene.camera.direction * scene.camera.screendist
 
     for _ in 1:spp
         for i in 1:size[1]
             for j in 1:size[2]
-                screenp = screencenter + (i - size[1] / 2) * screenx + (j - size[2] / 2) * screeny
+                screenp = screencenter + (i - size[1] / 2) * screenx + (j - size[2] / 2) * screeny + rand() * screenx + rand() * screeny
                 ray = Ray(screenp, normalize(screenp - scene.camera.origin))
+                weight = 1.0
+                russian_roulette = 0.5
 
                 hr = hit_in_scene(scene, ray)
                 while !isnothing(hr)
-                    result.data[i, j] += hr[2].color
+                    result.data[i, j] *= hr[2].color
+                    result.data[i, j] += weight * hr[2].emit
 
                     ray = Ray(hr[1].point, sample_lambertian_cosine_pdf(ray, hr[1].normal))
                     hr = hit_in_scene(scene, ray)
 
-                    if rand() < 0.5
+                    if rand() < russian_roulette
                         break
                     end
+
+                    weight = weight / russian_roulette
                 end
             end
         end
@@ -210,7 +220,18 @@ end
 function main()
     scene = Scene(
         Camera(Vec3(50.0, 52.0, 220.0), normalize(Vec3(0.0, 1.0, 0.0)), normalize(Vec3(0.0, -0.04, -1.0)), 40.0),
-        [Sphere(Vec3(50.0, 90.0, 81.6), 15.0, RGB(255, 128, 0)), Sphere(Vec3(77.0, 16.5, 78.0), 16.5, RGB(0, 0, 255))],
+        30.0,
+        [
+            Sphere(Vec3(1e5 + 1, 40.8, 81.6), 1e5, RGB(0.75, 0.25, 0.25), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(-1e5 + 99, 40.8, 81.6), 1e5, RGB(0.25, 0.25, 0.75), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(50.0, 40.8, 1e5), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(50.0, 40.8, -1e5 + 250), 1e5, RGB(0.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(50.0, 1e5, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(65, 20, 20), 20, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(27, 16.5, 47), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(77, 16.5, 78), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(50, 90, 81.6), 15, RGB(0, 0, 0), RGB(15, 15, 15)),
+        ],
     )
 
     result = render(scene, (500, 500))

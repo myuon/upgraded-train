@@ -1,4 +1,5 @@
 import Base: +
+import Base: *
 import Base: /
 
 struct RGB
@@ -9,7 +10,13 @@ end
 
 +(rgb1::RGB, rgb2::RGB)::RGB = RGB(rgb1.r + rgb2.r, rgb1.g + rgb2.g, rgb1.b + rgb2.b)
 
+*(rgb::RGB, s::Number)::RGB = RGB(rgb.r * s, rgb.g * s, rgb.b * s)
+
+*(s::Number, rgb::RGB)::RGB = RGB(rgb.r * s, rgb.g * s, rgb.b * s)
+
 /(rgb::RGB, s::Number)::RGB = RGB(rgb.r / s, rgb.g / s, rgb.b / s)
+
+*(rgb1::RGB, rgb2::RGB)::RGB = RGB(rgb1.r * rgb2.r, rgb1.g * rgb2.g, rgb1.b * rgb2.b)
 
 struct Image
     data::Array{RGB,2}
@@ -38,7 +45,12 @@ function save(filepath::String, image::Image)
 
         for i in 1:size(image.data)[1]
             for j in 1:size(image.data)[2]
-                println(io, round(Int, image.data[i, j].r * 255), " ", round(Int, image.data[i, j].g * 255), " ", round(Int, image.data[i, j].b * 255))
+                println(
+                    io,
+                    round(Int, min(image.data[i, j].r, 1.0) * 255), " ",
+                    round(Int, min(image.data[i, j].g, 1.0) * 255), " ",
+                    round(Int, min(image.data[i, j].b, 1.0) * 255),
+                )
             end
         end
     end
