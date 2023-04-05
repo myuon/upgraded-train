@@ -84,6 +84,8 @@ cross(v1::Vec3, v2::UnitVec3)::Vec3 = cross(v1, as_vec3(v2))
 
 *(s::Number, v::UnitVec3)::Vec3 = Vec3(s * v.data)
 
+-(a::UnitVec3) = UnitVec3(-a.data[1], -a.data[2], -a.data[3])
+
 struct Ray
     origin::Vec3
     direction::UnitVec3
@@ -132,7 +134,7 @@ function hit(sphere::Sphere, ray::Ray)::Union{HitRecord,Nothing}
         distance = t1
     end
 
-    point = ray.origin + (-b - sqrt(discriminant)) / (2 * a) * ray.direction
+    point = ray.origin + distance * ray.direction
 
     return HitRecord(
         point,
@@ -184,7 +186,7 @@ end
 
 function render(scene::Scene, size::Tuple{Int,Int})::Image
     result = Image(size)
-    spp = 1
+    spp = 4
 
     screenx = normalize(cross(scene.camera.direction, scene.camera.up)) * scene.screensize
     screeny = normalize(cross(screenx, scene.camera.direction)) * (scene.screensize / size[1] * size[2])
@@ -249,7 +251,7 @@ function main()
             Sphere(Vec3(65, 20, 20), 20, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0)),
             Sphere(Vec3(27, 16.5, 47), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0)),
             Sphere(Vec3(77, 16.5, 78), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(50, 90, 81.6), 15, RGB(0, 0, 0), RGB(15, 15, 15)),
+            Sphere(Vec3(50, 90, 81.6), 15, RGB(0, 0, 0), RGB(36, 36, 36)),
         ],
     )
 
