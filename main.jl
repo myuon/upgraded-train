@@ -98,11 +98,14 @@ struct Camera
     screendist::Float64
 end
 
+@enum Reflection diffuse specular refractive
+
 struct Sphere
     center::Vec3
     radius::Float64
     color::RGB
     emit::RGB
+    reflection::Reflection
 end
 
 struct HitRecord
@@ -219,9 +222,19 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                         break
                     end
 
-                    weight *= object.color / russian_roulette
-                    orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
-                    ray = Ray(ht.point + orientnormal * kEPS, sample_lambertian_cosine_pdf(ray, orientnormal))
+                    if object.reflection == diffuse
+                        weight *= object.color / russian_roulette
+                        orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
+                        ray = Ray(ht.point + orientnormal * kEPS, sample_lambertian_cosine_pdf(ray, orientnormal))
+                    elseif object.reflection == specular
+                        weight *= object.color / russian_roulette
+                        ray = Ray(ht.point, normalize(as_vec3(ray.direction) - ht.normal * 2.0 * dot(ht.normal, ray.direction)))
+                    elseif object.reflection == refractive
+                        weight *= object.color / russian_roulette
+                        ray = Ray(ht.point, normalize(as_vec3(ray.direction) - ht.normal * 2.0 * dot(ht.normal, ray.direction)))
+                    else
+                        break
+                    end
                     hr = hit_in_scene(scene, ray)
                 end
             end
@@ -242,16 +255,16 @@ function main()
         Camera(Vec3(50.0, 52.0, 220.0), normalize(Vec3(0.0, 1.0, 0.0)), normalize(Vec3(0.0, -0.04, -1.0)), 40.0),
         30.0,
         [
-            Sphere(Vec3(1e5 + 1, 40.8, 81.6), 1e5, RGB(0.75, 0.25, 0.25), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(-1e5 + 99, 40.8, 81.6), 1e5, RGB(0.25, 0.25, 0.75), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(50.0, 40.8, 1e5), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(50.0, 40.8, -1e5 + 250), 1e5, RGB(0.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(50.0, 1e5, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(50.0, -1e5 + 81.6, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(65, 20, 20), 20, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(27, 16.5, 47), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(77, 16.5, 78), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0)),
-            Sphere(Vec3(50, 90, 81.6), 15, RGB(0, 0, 0), RGB(36, 36, 36)),
+            Sphere(Vec3(1e5 + 1, 40.8, 81.6), 1e5, RGB(0.75, 0.25, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
+            Sphere(Vec3(-1e5 + 99, 40.8, 81.6), 1e5, RGB(0.25, 0.25, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            Sphere(Vec3(50.0, 40.8, 1e5), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            Sphere(Vec3(50.0, 40.8, -1e5 + 250), 1e5, RGB(0.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
+            Sphere(Vec3(50.0, 1e5, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            Sphere(Vec3(50.0, -1e5 + 81.6, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            Sphere(Vec3(65, 20, 20), 20, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
+            Sphere(Vec3(27, 16.5, 47), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), specular),
+            Sphere(Vec3(77, 16.5, 78), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), refractive),
+            Sphere(Vec3(50, 90, 81.6), 15, RGB(0, 0, 0), RGB(36, 36, 36), diffuse),
         ],
     )
 
