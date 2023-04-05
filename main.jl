@@ -45,7 +45,7 @@ cross(v1::Vec3, v2::Vec3)::Vec3 = Vec3(
 struct UnitVec3
     data::Vector{Float64}
 
-    function UnitVec3(x::Float64, y::Float64, z::Float64)
+    function UnitVec3(x::Number, y::Number, z::Number)
         @assert sqrt(x^2 + y^2 + z^2) - 1 < 1e-6
 
         new([x, y, z])
@@ -132,9 +132,11 @@ function hit(sphere::Sphere, ray::Ray)::Union{HitRecord,Nothing}
         distance = t1
     end
 
+    point = ray.origin + (-b - sqrt(discriminant)) / (2 * a) * ray.direction
+
     return HitRecord(
-        ray.origin + (-b - sqrt(discriminant)) / (2 * a) * ray.direction,
-        normalize(ray.origin + (-b - sqrt(discriminant)) / (2 * a) * ray.direction - sphere.center),
+        point,
+        normalize(point - sphere.center),
         distance,
     )
 end
@@ -185,24 +187,26 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
     for _ in 1:spp
         for i in 1:size[1]
             for j in 1:size[2]
-                screenp = screencenter + (i - size[1] / 2) * screenx + (j - size[2] / 2) * screeny + rand() * screenx + rand() * screeny
+                screenp = screencenter + (j / size[1] - 0.5) * screenx - (i / size[2] - 0.5) * screeny
                 ray = Ray(screenp, normalize(screenp - scene.camera.origin))
                 weight = 1.0
                 russian_roulette = 0.5
+                count = 0
 
                 hr = hit_in_scene(scene, ray)
                 while !isnothing(hr)
-                    result.data[i, j] *= hr[2].color
-                    result.data[i, j] += weight * hr[2].emit
-
-                    ray = Ray(hr[1].point, sample_lambertian_cosine_pdf(ray, hr[1].normal))
-                    hr = hit_in_scene(scene, ray)
+                    count += 1
+                    ht, object = hr
+                    result.data[i, j] += hr[2].emit * weight
 
                     if rand() < russian_roulette
                         break
                     end
 
-                    weight = weight / russian_roulette
+                    weight *= object.color / russian_roulette
+                    orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
+                    ray = Ray(ht.point + orientnormal * kEPS, sample_lambertian_cosine_pdf(ray, orientnormal))
+                    hr = hit_in_scene(scene, ray)
                 end
             end
         end
@@ -234,7 +238,7 @@ function main()
         ],
     )
 
-    result = render(scene, (500, 500))
+    result = render(scene, (300, 300))
 
     save("output", result)
 end
