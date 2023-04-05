@@ -186,7 +186,7 @@ end
 
 function render(scene::Scene, size::Tuple{Int,Int})::Image
     result = Image(size)
-    spp = 4
+    spp = parse(Int, get(ENV, "SPP", "4"))
 
     screenx = normalize(cross(scene.camera.direction, scene.camera.up)) * scene.screensize
     screeny = normalize(cross(screenx, scene.camera.direction)) * (scene.screensize / size[1] * size[2])
