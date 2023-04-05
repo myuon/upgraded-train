@@ -43,8 +43,8 @@ function save(filepath::String, image::Image)
         println(io, size(image.data)[1], " ", size(image.data)[2])
         println(io, 255)
 
-        for i in 1:size(image.data)[1]
-            for j in 1:size(image.data)[2]
+        for j in 1:size(image.data)[2]
+            for i in 1:size(image.data)[1]
                 println(
                     io,
                     round(Int, min(image.data[i, j].r, 1.0) * 255), " ",

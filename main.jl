@@ -188,7 +188,7 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
     for _ in 1:spp
         for i in 1:size[1]
             for j in 1:size[2]
-                screenp = screencenter + (j / size[1] - 0.5) * screenx - (i / size[2] - 0.5) * screeny
+                screenp = screencenter + (i / size[1] - 0.5) * screenx - (j / size[2] - 0.5) * screeny
                 ray = Ray(screenp, normalize(screenp - scene.camera.origin))
                 weight = 1.0
                 russian_roulette = 0.5
@@ -239,7 +239,7 @@ function main()
         ],
     )
 
-    result = render(scene, (300, 300))
+    result = render(scene, (640, 480))
 
     save("output", result)
 end
