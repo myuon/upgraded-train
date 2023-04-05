@@ -1,5 +1,7 @@
 include("image.jl")
 
+kEPS = 1e-6
+
 import Base: +
 import Base: -
 import Base: *
@@ -7,7 +9,7 @@ import Base: *
 struct Vec3
     data::Vector{Float64}
 
-    function Vec3(x::Float64, y::Float64, z::Float64)
+    function Vec3(x::Number, y::Number, z::Number)
         new([x, y, z])
     end
 
@@ -97,21 +99,74 @@ end
 struct Sphere
     center::Vec3
     radius::Float64
+    color::RGB
 end
 
-function hit(sphere::Sphere, ray::Ray)::Bool
+struct HitRecord
+    point::Vec3
+    normal::UnitVec3
+    distance::Float64
+end
+
+function hit(sphere::Sphere, ray::Ray)::Union{HitRecord,Nothing}
     oc = ray.origin - sphere.center
     a = dot(ray.direction, ray.direction)
     b = 2 * dot(oc, ray.direction)
     c = dot(oc, oc) - sphere.radius^2
     discriminant = b^2 - 4 * a * c
 
-    discriminant > 0
+    if discriminant < 0
+        return nothing
+    end
+
+    t1 = (-b + sqrt(discriminant)) / (2 * a)
+    t2 = (-b - sqrt(discriminant)) / (2 * a)
+    if t1 < kEPS && t2 < kEPS
+        return nothing
+    end
+
+    if t1 < kEPS
+        distance = t2
+    else
+        distance = t1
+    end
+
+    return HitRecord(
+        ray.origin + (-b - sqrt(discriminant)) / (2 * a) * ray.direction,
+        normalize(ray.origin + (-b - sqrt(discriminant)) / (2 * a) * ray.direction - sphere.center),
+        distance,
+    )
+end
+
+function sample_lambertian_cosine_pdf(ray::Ray, normal::UnitVec3)::UnitVec3
+    w = normal
+    u = normalize(cross(Vec3(0, 1, 0), w))
+    v = cross(w, u)
+
+    phy = 2π * rand()
+    cos_theta = sqrt(rand())
+
+    normalize(
+        u * cos(phy) * cos_theta +
+        v * sin(phy) * cos_theta +
+        w * sqrt(1 - cos_theta^2)
+    )
 end
 
 struct Scene
     camera::Camera
     objects::Vector{Sphere}
+end
+
+function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Sphere},Nothing}
+    for object in scene.objects
+        hr = hit(object, ray)
+        if !isnothing(hr)
+            return hr, object
+        end
+    end
+
+    return nothing
 end
 
 function render(scene::Scene, size::Tuple{Int,Int})::Image
@@ -128,9 +183,14 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                 screenp = screencenter + (i - size[1] / 2) * screenx + (j - size[2] / 2) * screeny
                 ray = Ray(screenp, normalize(screenp - scene.camera.origin))
 
-                for object in scene.objects
-                    if hit(object, ray)
-                        result.data[i, j] = RGB(55, 55, 55)
+                hr = hit_in_scene(scene, ray)
+                while !isnothing(hr)
+                    result.data[i, j] += hr[2].color
+
+                    ray = Ray(hr[1].point, sample_lambertian_cosine_pdf(ray, hr[1].normal))
+                    hr = hit_in_scene(scene, ray)
+
+                    if rand() < 0.5
                         break
                     end
                 end
@@ -150,10 +210,10 @@ end
 function main()
     scene = Scene(
         Camera(Vec3(50.0, 52.0, 220.0), normalize(Vec3(0.0, 1.0, 0.0)), normalize(Vec3(0.0, -0.04, -1.0)), 40.0),
-        [Sphere(Vec3(50.0, 90.0, 81.6), 15.0), Sphere(Vec3(77.0, 16.5, 78.0), 16.5)],
+        [Sphere(Vec3(50.0, 90.0, 81.6), 15.0, RGB(255, 128, 0)), Sphere(Vec3(77.0, 16.5, 78.0), 16.5, RGB(0, 0, 255))],
     )
 
-    result = render(scene, (100, 100))
+    result = render(scene, (500, 500))
 
     save("output", result)
 end

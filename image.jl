@@ -1,3 +1,4 @@
+import Base: +
 import Base: /
 
 struct RGB
@@ -5,6 +6,8 @@ struct RGB
     g::Float64
     b::Float64
 end
+
++(rgb1::RGB, rgb2::RGB)::RGB = RGB(rgb1.r + rgb2.r, rgb1.g + rgb2.g, rgb1.b + rgb2.b)
 
 /(rgb::RGB, s::Number)::RGB = RGB(rgb.r / s, rgb.g / s, rgb.b / s)
 
