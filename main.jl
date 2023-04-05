@@ -143,7 +143,12 @@ end
 
 function sample_lambertian_cosine_pdf(ray::Ray, normal::UnitVec3)::UnitVec3
     w = normal
-    u = normalize(cross(Vec3(0, 1, 0), w))
+    if w.data[1] > kEPS
+        u = normalize(cross(Vec3(0, 1, 0), w))
+    else
+        u = normalize(cross(Vec3(1, 0, 0), w))
+    end
+
     v = cross(w, u)
 
     phy = 2π * rand()
@@ -185,22 +190,30 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
     screeny = normalize(cross(screenx, scene.camera.direction)) * (scene.screensize / size[1] * size[2])
     screencenter = scene.camera.origin + scene.camera.direction * scene.camera.screendist
 
+    russian_roulette_min = 3
+    russian_roulette_max = 10
+
     for _ in 1:spp
         for i in 1:size[1]
             for j in 1:size[2]
-                screenp = screencenter + (i / size[1] - 0.5) * screenx - (j / size[2] - 0.5) * screeny
+                screenp = screencenter + ((i + rand()) / size[1] - 0.5) * screenx - ((j + rand()) / size[2] - 0.5) * screeny
                 ray = Ray(screenp, normalize(screenp - scene.camera.origin))
                 weight = 1.0
-                russian_roulette = 0.5
                 count = 0
 
                 hr = hit_in_scene(scene, ray)
                 while !isnothing(hr)
                     count += 1
                     ht, object = hr
-                    result.data[i, j] += hr[2].emit * weight
+                    result.data[i, j] += object.emit * weight
+                    russian_roulette = max(object.color.r, object.color.g, object.color.b)
 
-                    if rand() < russian_roulette
+                    if count > russian_roulette_max
+                        russian_roulette *= 0.5
+                    end
+                    if count < russian_roulette_min
+                        russian_roulette = 1.0
+                    elseif rand() < russian_roulette || russian_roulette < kEPS
                         break
                     end
 
@@ -232,6 +245,7 @@ function main()
             Sphere(Vec3(50.0, 40.8, 1e5), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0)),
             Sphere(Vec3(50.0, 40.8, -1e5 + 250), 1e5, RGB(0.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0)),
             Sphere(Vec3(50.0, 1e5, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0)),
+            Sphere(Vec3(50.0, -1e5 + 81.6, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0)),
             Sphere(Vec3(65, 20, 20), 20, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0)),
             Sphere(Vec3(27, 16.5, 47), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0)),
             Sphere(Vec3(77, 16.5, 78), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0)),

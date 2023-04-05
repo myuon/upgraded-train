@@ -45,11 +45,24 @@ function save(filepath::String, image::Image)
 
         for j in 1:size(image.data)[2]
             for i in 1:size(image.data)[1]
+                r = image.data[i, j].r
+                if isnan(r)
+                    r = 0
+                end
+                g = image.data[i, j].g
+                if isnan(g)
+                    g = 0
+                end
+                b = image.data[i, j].b
+                if isnan(b)
+                    b = 0
+                end
+
                 println(
                     io,
-                    round(Int, min(image.data[i, j].r, 1.0) * 255), " ",
-                    round(Int, min(image.data[i, j].g, 1.0) * 255), " ",
-                    round(Int, min(image.data[i, j].b, 1.0) * 255),
+                    round(Int, min(r, 1.0) * 255), " ",
+                    round(Int, min(g, 1.0) * 255), " ",
+                    round(Int, min(b, 1.0) * 255),
                 )
             end
         end
