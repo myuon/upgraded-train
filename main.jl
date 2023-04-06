@@ -7,16 +7,14 @@ import Base: -
 import Base: *
 
 struct Vec3
-    data::Vector{Float64}
+    data::Tuple{Float64,Float64,Float64}
 
-    function Vec3(x::Float64, y::Float64, z::Float64)
-        new([x, y, z])
+    function Vec3(vec::Tuple{Float64,Float64,Float64})
+        new(vec)
     end
 
-    function Vec3(vec::Vector{Float64})
-        @assert Base.length(vec) == 3
-
-        new(vec)
+    function Vec3(x::Float64, y::Float64, z::Float64)
+        new((x, y, z))
     end
 end
 
@@ -38,17 +36,17 @@ cross(v1::Vec3, v2::Vec3)::Vec3 = Vec3(
 
 -(v1::Vec3, v2::Vec3)::Vec3 = Vec3(v1.data .- v2.data)
 
-*(v::Vec3, s::Float64)::Vec3 = Vec3(s * v.data)
+*(v::Vec3, s::Float64)::Vec3 = Vec3(s .* v.data)
 
-*(s::Float64, v::Vec3)::Vec3 = Vec3(s * v.data)
+*(s::Float64, v::Vec3)::Vec3 = Vec3(s .* v.data)
 
 struct UnitVec3
-    data::Vector{Float64}
+    data::Tuple{Float64,Float64,Float64}
 
     function UnitVec3(x::Float64, y::Float64, z::Float64)
         @assert sqrt(x^2 + y^2 + z^2) - 1 < 1e-6
 
-        new([x, y, z])
+        new((x, y, z))
     end
 
     function UnitVec3(vec::Vec3)
@@ -80,9 +78,9 @@ cross(v1::UnitVec3, v2::Vec3)::Vec3 = cross(as_vec3(v1), v2)
 
 cross(v1::Vec3, v2::UnitVec3)::Vec3 = cross(v1, as_vec3(v2))
 
-*(v::UnitVec3, s::Float64)::Vec3 = Vec3(s * v.data)
+*(v::UnitVec3, s::Float64)::Vec3 = Vec3(s .* v.data)
 
-*(s::Float64, v::UnitVec3)::Vec3 = Vec3(s * v.data)
+*(s::Float64, v::UnitVec3)::Vec3 = Vec3(s .* v.data)
 
 -(a::UnitVec3) = UnitVec3(-a.data[1], -a.data[2], -a.data[3])
 
@@ -187,16 +185,17 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Sphere},Not
     return result
 end
 
+const spp = parse(Int, get(ENV, "SPP", "4"))
+
+const russian_roulette_min = 3
+const russian_roulette_max = 10
+
 function render(scene::Scene, size::Tuple{Int,Int})::Image
     result = Image(size)
-    spp = parse(Int, get(ENV, "SPP", "4"))
 
     screenx = normalize(cross(scene.camera.direction, scene.camera.up)) * Float64(scene.screensize)
     screeny = normalize(cross(screenx, scene.camera.direction)) * (scene.screensize / size[1] * size[2])
     screencenter = scene.camera.origin + scene.camera.direction * scene.camera.screendist
-
-    russian_roulette_min = 3
-    russian_roulette_max = 10
 
     Threads.@threads for i in 1:size[1]
         Threads.@threads for j in 1:size[2]
