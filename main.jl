@@ -113,26 +113,24 @@ struct HitRecord
 end
 
 function hit(sphere::Sphere, ray::Ray)::Union{HitRecord,Nothing}
-    oc = ray.origin - sphere.center
-    a = dot(ray.direction, ray.direction)
-    b = 2 * dot(oc, ray.direction)
-    c = dot(oc, oc) - sphere.radius^2
-    discriminant = b^2 - 4 * a * c
+    po = sphere.center - ray.origin
+    b = dot(po, ray.direction)
+    discriminant = b^2 - dot(po, po) + sphere.radius^2
 
     if discriminant < 0
         return nothing
     end
 
-    t1 = (-b + sqrt(discriminant)) / (2 * a)
-    t2 = (-b - sqrt(discriminant)) / (2 * a)
+    t1 = b - sqrt(discriminant)
+    t2 = b + sqrt(discriminant)
     if t1 < kEPS && t2 < kEPS
         return nothing
     end
 
-    if t1 < kEPS
-        distance = t2
-    else
+    if t1 > kEPS
         distance = t1
+    else
+        distance = t2
     end
 
     point = ray.origin + distance * ray.direction
@@ -144,9 +142,9 @@ function hit(sphere::Sphere, ray::Ray)::Union{HitRecord,Nothing}
     )
 end
 
-function sample_lambertian_cosine_pdf(ray::Ray, normal::UnitVec3)::UnitVec3
+function sample_lambertian_cosine_pdf(normal::UnitVec3)::UnitVec3
     w = normal
-    if w.data[1] > kEPS
+    if abs(w.data[1]) > kEPS
         u = normalize(cross(Vec3(0.0, 1.0, 0.0), w))
     else
         u = normalize(cross(Vec3(1.0, 0.0, 0.0), w))
@@ -224,12 +222,12 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                     orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
                     if object.reflection == diffuse
                         weight *= object.color / russian_roulette
-                        ray = Ray(ht.point + orientnormal * kEPS, sample_lambertian_cosine_pdf(ray, orientnormal))
+                        ray = Ray(ht.point, sample_lambertian_cosine_pdf(orientnormal))
                     elseif object.reflection == specular
                         weight *= object.color / russian_roulette
-                        ray = Ray(ht.point + ht.normal * kEPS, normalize(as_vec3(ray.direction) + ht.normal * 2.0 * dot(ht.normal, ray.direction)))
+                        ray = Ray(ht.point, normalize(as_vec3(ray.direction) - ht.normal * 2.0 * dot(ht.normal, ray.direction)))
                     elseif object.reflection == refractive
-                        reflectionray = Ray(ht.point + ht.normal * kEPS, normalize(as_vec3(ray.direction) + ht.normal * 2.0 * dot(ht.normal, ray.direction)))
+                        reflectionray = Ray(ht.point, normalize(as_vec3(ray.direction) - ht.normal * 2.0 * dot(ht.normal, ray.direction)))
                         into = dot(ht.normal, orientnormal) > 0
 
                         nc = 1.0
@@ -239,16 +237,16 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                         cos2t = 1.0 - nnt^2 * (1.0 - ddn^2)
 
                         if cos2t < 0
-                            ray = reflectionray
                             weight *= object.color / russian_roulette
+                            ray = reflectionray
                         else
-                            refractionray = Ray(ht.point - ht.normal * kEPS, normalize(as_vec3(ray.direction) * nnt - ht.normal * (into ? 1.0 : -1.0) * (ddn * nnt + sqrt(cos2t))))
+                            refractionray = Ray(ht.point, normalize(as_vec3(ray.direction) * nnt - ht.normal * (into ? 1.0 : -1.0) * (ddn * nnt + sqrt(cos2t))))
 
                             a = nt - nc
                             b = nt + nc
                             R0 = a^2 / b^2
 
-                            c = 1.0 - (into ? -ddn : dot(refractionray.direction, -ht.normal))
+                            c = 1.0 - (into ? -ddn : dot(refractionray.direction, -orientnormal))
 
                             Re = R0 + (1.0 - R0) * c^5
                             Tr = (1.0 - Re) * (into ? nc / nt : nt / nc)^2
@@ -265,6 +263,7 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                     else
                         break
                     end
+
                     hr = hit_in_scene(scene, ray)
                 end
             end
@@ -282,7 +281,7 @@ end
 
 function main()
     scene = Scene(
-        Camera(Vec3(50.0, 52.0, 220.0), normalize(Vec3(0.0, 1.0, 0.0)), normalize(Vec3(0.0, -0.04, -1.0)), 40.0),
+        Camera(Vec3(50.0, 52.0, 220.0), normalize(Vec3(0.0, 1.0, 0.0)), normalize(Vec3(0.0, -0.04, -1.0)), 30),
         30.0,
         [
             Sphere(Vec3(1e5 + 1, 40.8, 81.6), 1e5, RGB(0.75, 0.25, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
