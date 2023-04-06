@@ -37,7 +37,15 @@ struct Image
     end
 end
 
-function save(filepath::String, image::Image)
+function to_color_value(value::Float64, gamma::Float64)::Int
+    if isnan(value)
+        return 0
+    end
+
+    return round(Int, max(min(value, 1.0), 0.0)^(1.0 / gamma) * 255 + 0.5)
+end
+
+function save(filepath::String, image::Image, gamma::Float64)
     open("$filepath.ppm", "w") do io
         println(io, "P3")
         println(io, size(image.data)[1], " ", size(image.data)[2])
@@ -45,25 +53,11 @@ function save(filepath::String, image::Image)
 
         for j in 1:size(image.data)[2]
             for i in 1:size(image.data)[1]
-                r = image.data[i, j].r
-                if isnan(r)
-                    r = 0
-                end
-                g = image.data[i, j].g
-                if isnan(g)
-                    g = 0
-                end
-                b = image.data[i, j].b
-                if isnan(b)
-                    b = 0
-                end
+                r = to_color_value(image.data[i, j].r, gamma)
+                g = to_color_value(image.data[i, j].g, gamma)
+                b = to_color_value(image.data[i, j].b, gamma)
 
-                println(
-                    io,
-                    round(Int, min(r, 1.0) * 255), " ",
-                    round(Int, min(g, 1.0) * 255), " ",
-                    round(Int, min(b, 1.0) * 255),
-                )
+                println(io, r, " ", g, " ", b)
             end
         end
     end

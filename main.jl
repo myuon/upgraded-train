@@ -301,7 +301,7 @@ function main()
 
     result = render(scene, (640, 480))
 
-    save("output", result)
+    save("output", result, 2.2)
 end
 
 main()
