@@ -222,16 +222,47 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                         break
                     end
 
+                    orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
                     if object.reflection == diffuse
                         weight *= object.color / russian_roulette
-                        orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
                         ray = Ray(ht.point + orientnormal * kEPS, sample_lambertian_cosine_pdf(ray, orientnormal))
                     elseif object.reflection == specular
                         weight *= object.color / russian_roulette
-                        ray = Ray(ht.point, normalize(as_vec3(ray.direction) - ht.normal * 2.0 * dot(ht.normal, ray.direction)))
+                        ray = Ray(ht.point + ht.normal * kEPS, normalize(as_vec3(ray.direction) + ht.normal * 2.0 * dot(ht.normal, ray.direction)))
                     elseif object.reflection == refractive
-                        weight *= object.color / russian_roulette
-                        ray = Ray(ht.point, normalize(as_vec3(ray.direction) - ht.normal * 2.0 * dot(ht.normal, ray.direction)))
+                        reflectionray = Ray(ht.point + ht.normal * kEPS, normalize(as_vec3(ray.direction) + ht.normal * 2.0 * dot(ht.normal, ray.direction)))
+                        into = dot(ht.normal, orientnormal) > 0
+
+                        nc = 1.0
+                        nt = 1.5
+                        nnt = into ? nc / nt : nt / nc
+                        ddn = dot(ray.direction, orientnormal)
+                        cos2t = 1.0 - nnt^2 * (1.0 - ddn^2)
+
+                        if cos2t < 0
+                            ray = reflectionray
+                            weight *= object.color / russian_roulette
+                        else
+                            refractionray = Ray(ht.point - ht.normal * kEPS, normalize(as_vec3(ray.direction) * nnt - ht.normal * (into ? 1.0 : -1.0) * (ddn * nnt + sqrt(cos2t))))
+
+                            a = nt - nc
+                            b = nt + nc
+                            R0 = a^2 / b^2
+
+                            c = 1.0 - (into ? -ddn : dot(refractionray.direction, -ht.normal))
+
+                            Re = R0 + (1.0 - R0) * c^5
+                            Tr = (1.0 - Re) * (into ? nc / nt : nt / nc)^2
+
+                            prob = 0.25 + 0.5 * Re
+                            if rand() < prob
+                                ray = reflectionray
+                                weight *= object.color * Re / (russian_roulette * prob)
+                            else
+                                ray = refractionray
+                                weight *= object.color * Tr / (russian_roulette * (1 - prob))
+                            end
+                        end
                     else
                         break
                     end
