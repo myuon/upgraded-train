@@ -198,9 +198,9 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
     russian_roulette_min = 3
     russian_roulette_max = 10
 
-    for _ in 1:spp
-        for i in 1:size[1]
-            for j in 1:size[2]
+    Threads.@threads for i in 1:size[1]
+        Threads.@threads for j in 1:size[2]
+            for _ in 1:spp
                 screenp = screencenter + ((i + rand()) / size[1] - 0.5) * screenx - ((j + rand()) / size[2] - 0.5) * screeny
                 ray = Ray(screenp, normalize(screenp - scene.camera.origin))
                 weight = 1.0
