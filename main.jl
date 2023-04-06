@@ -9,7 +9,7 @@ import Base: *
 struct Vec3
     data::Vector{Float64}
 
-    function Vec3(x::Number, y::Number, z::Number)
+    function Vec3(x::Float64, y::Float64, z::Float64)
         new([x, y, z])
     end
 
@@ -38,14 +38,14 @@ cross(v1::Vec3, v2::Vec3)::Vec3 = Vec3(
 
 -(v1::Vec3, v2::Vec3)::Vec3 = Vec3(v1.data .- v2.data)
 
-*(v::Vec3, s::Number)::Vec3 = Vec3(s * v.data)
+*(v::Vec3, s::Float64)::Vec3 = Vec3(s * v.data)
 
-*(s::Number, v::Vec3)::Vec3 = Vec3(s * v.data)
+*(s::Float64, v::Vec3)::Vec3 = Vec3(s * v.data)
 
 struct UnitVec3
     data::Vector{Float64}
 
-    function UnitVec3(x::Number, y::Number, z::Number)
+    function UnitVec3(x::Float64, y::Float64, z::Float64)
         @assert sqrt(x^2 + y^2 + z^2) - 1 < 1e-6
 
         new([x, y, z])
@@ -80,9 +80,9 @@ cross(v1::UnitVec3, v2::Vec3)::Vec3 = cross(as_vec3(v1), v2)
 
 cross(v1::Vec3, v2::UnitVec3)::Vec3 = cross(v1, as_vec3(v2))
 
-*(v::UnitVec3, s::Number)::Vec3 = Vec3(s * v.data)
+*(v::UnitVec3, s::Float64)::Vec3 = Vec3(s * v.data)
 
-*(s::Number, v::UnitVec3)::Vec3 = Vec3(s * v.data)
+*(s::Float64, v::UnitVec3)::Vec3 = Vec3(s * v.data)
 
 -(a::UnitVec3) = UnitVec3(-a.data[1], -a.data[2], -a.data[3])
 
@@ -149,9 +149,9 @@ end
 function sample_lambertian_cosine_pdf(ray::Ray, normal::UnitVec3)::UnitVec3
     w = normal
     if w.data[1] > kEPS
-        u = normalize(cross(Vec3(0, 1, 0), w))
+        u = normalize(cross(Vec3(0.0, 1.0, 0.0), w))
     else
-        u = normalize(cross(Vec3(1, 0, 0), w))
+        u = normalize(cross(Vec3(1.0, 0.0, 0.0), w))
     end
 
     v = cross(w, u)
@@ -191,7 +191,7 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
     result = Image(size)
     spp = parse(Int, get(ENV, "SPP", "4"))
 
-    screenx = normalize(cross(scene.camera.direction, scene.camera.up)) * scene.screensize
+    screenx = normalize(cross(scene.camera.direction, scene.camera.up)) * Float64(scene.screensize)
     screeny = normalize(cross(screenx, scene.camera.direction)) * (scene.screensize / size[1] * size[2])
     screencenter = scene.camera.origin + scene.camera.direction * scene.camera.screendist
 
@@ -292,10 +292,10 @@ function main()
             Sphere(Vec3(50.0, 40.8, -1e5 + 250), 1e5, RGB(0.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
             Sphere(Vec3(50.0, 1e5, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
             Sphere(Vec3(50.0, -1e5 + 81.6, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(65, 20, 20), 20, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(27, 16.5, 47), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), specular),
-            Sphere(Vec3(77, 16.5, 78), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), refractive),
-            Sphere(Vec3(50, 90, 81.6), 15, RGB(0, 0, 0), RGB(36, 36, 36), diffuse),
+            Sphere(Vec3(65.0, 20.0, 20.0), 20.0, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
+            Sphere(Vec3(27.0, 16.5, 47.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), specular),
+            Sphere(Vec3(77.0, 16.5, 78.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), refractive),
+            Sphere(Vec3(50.0, 90.0, 81.6), 15.0, RGB(0.0, 0.0, 0.0), RGB(36.0, 36.0, 36.0), diffuse),
         ],
     )
 
