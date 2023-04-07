@@ -185,7 +185,7 @@ end
 
 const spp = parse(Int, get(ENV, "SPP", "4"))
 
-const russian_roulette_min = 3
+const russian_roulette_min = 5
 const russian_roulette_max = 10
 
 function render(scene::Scene, size::Tuple{Int,Int})::Image
