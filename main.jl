@@ -242,29 +242,28 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                 weight = 1.0
                 count = 0
 
+                prev_nee_contributed = false
                 hr = hit_in_scene(scene, ray)
                 while !isnothing(hr)
                     count += 1
                     ht, object = hr
                     orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
 
-                    if !enable_NEE || (object.reflection == specular || object.reflection == refractive)
+                    if !enable_NEE || !prev_nee_contributed
                         result.data[i, j] += object.emit * weight
                     end
-                    if enable_NEE && count == 1 && is_light(object)
-                        result.data[i, j] += object.emit * weight
-                    end
-                    if enable_NEE && count > 1 && object.reflection == diffuse
+                    if enable_NEE && object.reflection == diffuse
                         light, lightp = sample_on_light(scene)
                         shadowray = Ray(ht.point, normalize(lightp - ht.point))
 
                         shr = hit_in_scene(scene, shadowray)
-                        if rand() < 0.0001
-                            @show !isnothing(shr) && shr[2].center == light.center
-                        end
                         if !isnothing(shr) && shr[2].center == light.center
                             result.data[i, j] += light.emit * weight * object.color * 4 * dot(shadowray.direction, orientnormal)
                         end
+
+                        prev_nee_contributed = true
+                    else
+                        prev_nee_contributed = false
                     end
 
                     russian_roulette = max(object.color.r, object.color.g, object.color.b)
