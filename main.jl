@@ -97,13 +97,68 @@ function sample_lambertian_cosine_pdf(normal::UnitVec3)::UnitVec3
     )
 end
 
+struct Rectangle
+    vertex::Vec3
+    edge1::Vec3
+    edge2::Vec3
+    color::RGB
+    emit::RGB
+    reflection::Reflection
+end
+
+function hit(rect::Rectangle, ray::Ray)::Union{HitRecord,Nothing}
+    pvec = cross(ray.direction, rect.edge2)
+    det = dot(rect.edge1, pvec)
+
+    if abs(det) < kEPS
+        return nothing
+    end
+
+    invdet = 1 / det
+
+    tvec = ray.origin - rect.vertex
+    u = dot(tvec, pvec) * invdet
+    if u < 0 || u > 1
+        return nothing
+    end
+
+    qvec = cross(tvec, rect.edge1)
+    v = dot(ray.direction, qvec) * invdet
+    if v < 0 || u + v > 1
+        return nothing
+    end
+
+    t = dot(rect.edge2, qvec) * invdet
+
+    if t < kEPS
+        return nothing
+    end
+
+    point = ray.origin + t * ray.direction
+
+    return HitRecord(
+        point,
+        normalize(cross(rect.edge1, rect.edge2)),
+        t,
+    )
+end
+
+function sample_on_rectangle(rect::Rectangle)::Vec3
+    return rect.vertex + rand() * rect.edge1 + rand() * rect.edge2
+end
+
+function is_light(rect::Rectangle)::Bool
+    return rect.emit.r > 0 || rect.emit.g > 0 || rect.emit.b > 0
+end
+
 struct Scene
     camera::Camera
     screensize::Int
     objects::Vector{Sphere}
+    rectangles::Vector{Rectangle}
 end
 
-function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Sphere},Nothing}
+function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Sphere,Rectangle}},Nothing}
     distance = Inf
     result = nothing
 
@@ -114,14 +169,26 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Sphere},Not
             distance = hr.distance
         end
     end
+    for rectangle in scene.rectangles
+        hr = hit(rectangle, ray)
+        if !isnothing(hr) && hr.distance < distance
+            result = hr, rectangle
+            distance = hr.distance
+        end
+    end
 
     return result
 end
 
-function sample_on_light(scene::Scene)::Tuple{Sphere,Vec3}
+function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle},Vec3}
     sample_count = 0
     for object in scene.objects
         if is_light(object)
+            sample_count += 1
+        end
+    end
+    for rectangle in scene.rectangles
+        if is_light(rectangle)
             sample_count += 1
         end
     end
@@ -136,6 +203,24 @@ function sample_on_light(scene::Scene)::Tuple{Sphere,Vec3}
                 return object, sample_on_sphere(object)
             end
         end
+    end
+    for rectangle in scene.rectangles
+        if is_light(rectangle)
+            sample_count += 1
+            if sample_count == light_index
+                return rectangle, sample_on_rectangle(rectangle)
+            end
+        end
+    end
+end
+
+function is_same_shape(a::Union{Sphere,Rectangle}, b::Union{Sphere,Rectangle})::Bool
+    if a isa Sphere && b isa Sphere
+        return a.center == b.center && a.radius == b.radius
+    elseif a isa Rectangle && b isa Rectangle
+        return a.vertex == b.vertex && a.edge1 == b.edge1 && a.edge2 == b.edge2
+    else
+        return false
     end
 end
 
@@ -175,7 +260,7 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                         shadowray = Ray(ht.point, normalize(lightp - ht.point))
 
                         shr = hit_in_scene(scene, shadowray)
-                        if !isnothing(shr) && shr[2].center == light.center
+                        if !isnothing(shr) && is_same_shape(shr[2], light)
                             result.data[i, j] += light.emit * weight * object.color * 4 * dot(shadowray.direction, orientnormal)
                         end
 
@@ -268,8 +353,11 @@ function main()
             Sphere(Vec3(65.0, 20.0, 20.0), 20.0, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
             Sphere(Vec3(27.0, 16.5, 47.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), specular),
             Sphere(Vec3(77.0, 16.5, 78.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), refractive),
-            Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(0.5, 0.5, 0.5), diffuse),
+            # Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(0.5, 0.5, 0.5), diffuse),
         ],
+        [
+            Rectangle(Vec3(35.0, 80.0, 65.0), Vec3(0.0, 0.0, 30.0), Vec3(30.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), diffuse),
+        ]
     )
 
     result = render(scene, (640, 480))
