@@ -18,6 +18,8 @@ end
 
 *(rgb1::RGB, rgb2::RGB)::RGB = RGB(rgb1.r * rgb2.r, rgb1.g * rgb2.g, rgb1.b * rgb2.b)
 
+to_brightness(rgb::RGB)::Float64 = 0.257 * rgb.r + 0.504 * rgb.g + 0.098 * rgb.b
+
 struct Image
     data::Array{RGB,2}
 
@@ -37,13 +39,13 @@ struct Image
     end
 end
 
-function to_color_value(value::Float64, gamma::Float64)::Int
+function to_color_value(value::Float64, gamma::Float64, brightness::Float64)::Int
     if isnan(value)
         return 0
     end
 
-    # tone mapping x/(x+1)
-    value = value / (value + 1.0)
+    # tone mapping
+    value = value / (brightness + 1.0)
     value = max(min(value, 1.0), 0.0)^(1.0 / gamma)
 
     return round(Int, value * 255)
@@ -57,9 +59,10 @@ function save(filepath::String, image::Image, gamma::Float64)
 
         for j in 1:size(image.data)[2]
             for i in 1:size(image.data)[1]
-                r = to_color_value(image.data[i, j].r, gamma)
-                g = to_color_value(image.data[i, j].g, gamma)
-                b = to_color_value(image.data[i, j].b, gamma)
+                b = to_brightness(image.data[i, j])
+                r = to_color_value(image.data[i, j].r, gamma, b)
+                g = to_color_value(image.data[i, j].g, gamma, b)
+                b = to_color_value(image.data[i, j].b, gamma, b)
 
                 println(io, r, " ", g, " ", b)
             end
