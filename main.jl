@@ -106,6 +106,23 @@ struct Sphere
     reflection::Reflection
 end
 
+function sample_on_sphere(sphere::Sphere)::Vec3
+    v = Vec3(0.0, 0.0, 0.0)
+
+    while length(v) < 0.0001
+        x = randn()
+        y = randn()
+        z = randn()
+        v = Vec3(x, y, z)
+    end
+
+    return v * sphere.radius + sphere.center
+end
+
+function is_light(sphere::Sphere)::Bool
+    return sphere.emit.r > 0 || sphere.emit.g > 0 || sphere.emit.b > 0
+end
+
 struct HitRecord
     point::Vec3
     normal::UnitVec3
@@ -183,7 +200,29 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Sphere},Not
     return result
 end
 
+function sample_on_light(scene::Scene)::Tuple{Sphere,Vec3}
+    sample_count = 0
+    for object in scene.objects
+        if is_light(object)
+            sample_count += 1
+        end
+    end
+
+    light_index = rand(1:sample_count)
+
+    sample_count = 0
+    for object in scene.objects
+        if is_light(object)
+            sample_count += 1
+            if sample_count == light_index
+                return object, sample_on_sphere(object)
+            end
+        end
+    end
+end
+
 const spp = parse(Int, get(ENV, "SPP", "4"))
+const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
 
 const russian_roulette_min = 5
 const russian_roulette_max = 10
@@ -207,7 +246,20 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                 while !isnothing(hr)
                     count += 1
                     ht, object = hr
-                    result.data[i, j] += object.emit * weight
+
+                    if !enable_NEE || (object.reflection == specular || object.reflection == refractive || is_light(object))
+                        result.data[i, j] += object.emit * weight
+                    end
+                    if enable_NEE && object.reflection == diffuse
+                        light, lightp = sample_on_light(scene)
+                        shadowray = Ray(ht.point, normalize(lightp - ht.point))
+
+                        shr = hit_in_scene(scene, shadowray)
+                        if !isnothing(shr) && shr[2].center == light.center
+                            result.data[i, j] += light.emit * weight * shr[2].color * 4 * dot(shadowray.direction, ht.normal)
+                        end
+                    end
+
                     russian_roulette = max(object.color.r, object.color.g, object.color.b)
 
                     if count > russian_roulette_max
