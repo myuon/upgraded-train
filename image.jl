@@ -1,3 +1,5 @@
+module Images
+
 import Base: +
 import Base: *
 import Base: /
@@ -70,4 +72,8 @@ function save(filepath::String, image::Image, gamma::Float64)
     end
 
     run(`convert $filepath.ppm $filepath.png`)
+end
+
+export RGB, Image, save
+
 end
