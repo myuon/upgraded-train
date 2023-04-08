@@ -42,7 +42,11 @@ function to_color_value(value::Float64, gamma::Float64)::Int
         return 0
     end
 
-    return round(Int, max(min(value, 1.0), 0.0)^(1.0 / gamma) * 255)
+    # tone mapping x/(x+1)
+    value = value / (value + 1.0)
+    value = max(min(value, 1.0), 0.0)^(1.0 / gamma)
+
+    return round(Int, value * 255)
 end
 
 function save(filepath::String, image::Image, gamma::Float64)
