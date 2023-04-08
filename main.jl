@@ -107,16 +107,12 @@ struct Sphere
 end
 
 function sample_on_sphere(sphere::Sphere)::Vec3
-    v = Vec3(0.0, 0.0, 0.0)
+    phy = 2π * rand()
+    z = rand()
 
-    while length(v) < 0.0001
-        x = randn()
-        y = randn()
-        z = randn()
-        v = Vec3(x, y, z)
-    end
+    k = sqrt(1 - z^2)
 
-    return v * sphere.radius + sphere.center
+    return sphere.radius * Vec3(k * cos(phy), k * sin(phy), z) + sphere.center
 end
 
 function is_light(sphere::Sphere)::Bool
@@ -350,7 +346,7 @@ function main()
             Sphere(Vec3(65.0, 20.0, 20.0), 20.0, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
             Sphere(Vec3(27.0, 16.5, 47.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), specular),
             Sphere(Vec3(77.0, 16.5, 78.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), refractive),
-            Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), diffuse),
+            Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(0.5, 0.5, 0.5), diffuse),
         ],
     )
 
