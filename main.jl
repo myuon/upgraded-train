@@ -246,17 +246,24 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                 while !isnothing(hr)
                     count += 1
                     ht, object = hr
+                    orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
 
-                    if !enable_NEE || (object.reflection == specular || object.reflection == refractive || is_light(object))
+                    if !enable_NEE || (object.reflection == specular || object.reflection == refractive)
                         result.data[i, j] += object.emit * weight
                     end
-                    if enable_NEE && object.reflection == diffuse
+                    if enable_NEE && count == 1 && is_light(object)
+                        result.data[i, j] += object.emit * weight
+                    end
+                    if enable_NEE && count > 1 && object.reflection == diffuse
                         light, lightp = sample_on_light(scene)
                         shadowray = Ray(ht.point, normalize(lightp - ht.point))
 
                         shr = hit_in_scene(scene, shadowray)
+                        if rand() < 0.0001
+                            @show !isnothing(shr) && shr[2].center == light.center
+                        end
                         if !isnothing(shr) && shr[2].center == light.center
-                            result.data[i, j] += light.emit * weight * shr[2].color * 4 * dot(shadowray.direction, ht.normal)
+                            result.data[i, j] += light.emit * weight * object.color * 4 * dot(shadowray.direction, orientnormal)
                         end
                     end
 
@@ -271,7 +278,6 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
                         break
                     end
 
-                    orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
                     if object.reflection == diffuse
                         weight *= object.color / russian_roulette
                         ray = Ray(ht.point, sample_lambertian_cosine_pdf(orientnormal))
@@ -345,7 +351,7 @@ function main()
             Sphere(Vec3(65.0, 20.0, 20.0), 20.0, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
             Sphere(Vec3(27.0, 16.5, 47.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), specular),
             Sphere(Vec3(77.0, 16.5, 78.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), refractive),
-            Sphere(Vec3(50.0, 90.0, 81.6), 15.0, RGB(0.0, 0.0, 0.0), RGB(36.0, 36.0, 36.0), diffuse),
+            Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(36.0, 36.0, 36.0), diffuse),
         ],
     )
 
