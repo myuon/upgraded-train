@@ -151,14 +151,68 @@ function is_light(rect::Rectangle)::Bool
     return rect.emit.r > 0 || rect.emit.g > 0 || rect.emit.b > 0
 end
 
+struct Box
+    vertex::Vec3
+    edge1::Vec3
+    edge2::Vec3
+    edge3::Vec3
+    color::RGB
+    emit::RGB
+    reflection::Reflection
+end
+
+function hit(box::Box, ray::Ray)::Union{HitRecord,Nothing}
+    distance = Inf
+    hr = nothing
+
+    h = hit(Rectangle(box.vertex, box.edge1, box.edge2, box.color, box.emit, box.reflection), ray)
+    if !isnothing(h) && h.distance < distance
+        distance = h.distance
+        hr = h
+    end
+
+    h = hit(Rectangle(box.vertex, box.edge1, box.edge3, box.color, box.emit, box.reflection), ray)
+    if !isnothing(h) && h.distance < distance
+        distance = h.distance
+        hr = h
+    end
+
+    h = hit(Rectangle(box.vertex, box.edge2, box.edge3, box.color, box.emit, box.reflection), ray)
+    if !isnothing(h) && h.distance < distance
+        distance = h.distance
+        hr = h
+    end
+
+    h = hit(Rectangle(box.vertex + box.edge1, box.edge2, box.edge3, box.color, box.emit, box.reflection), ray)
+    if !isnothing(h) && h.distance < distance
+        distance = h.distance
+        hr = h
+    end
+
+    h = hit(Rectangle(box.vertex + box.edge2, box.edge1, box.edge3, box.color, box.emit, box.reflection), ray)
+    if !isnothing(h) && h.distance < distance
+        distance = h.distance
+        hr = h
+    end
+
+    h = hit(Rectangle(box.vertex + box.edge3, box.edge1, box.edge2, box.color, box.emit, box.reflection), ray)
+    if !isnothing(h) && h.distance < distance
+        distance = h.distance
+        hr = h
+    end
+
+    return hr
+end
+
 struct Scene
     camera::Camera
     screensize::Int
     objects::Vector{Sphere}
     rectangles::Vector{Rectangle}
+    boxes::Vector{Box}
 end
 
-function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Sphere,Rectangle}},Nothing}
+function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Sphere,Rectangle,Box}},Nothing}
     distance = Inf
     result = nothing
 
@@ -173,6 +227,13 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Spher
         hr = hit(rectangle, ray)
         if !isnothing(hr) && hr.distance < distance
             result = hr, rectangle
+            distance = hr.distance
+        end
+    end
+    for box in scene.boxes
+        hr = hit(box, ray)
+        if !isnothing(hr) && hr.distance < distance
+            result = hr, box
             distance = hr.distance
         end
     end
@@ -214,11 +275,13 @@ function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle},Vec3}
     end
 end
 
-function is_same_shape(a::Union{Sphere,Rectangle}, b::Union{Sphere,Rectangle})::Bool
+function is_same_shape(a::Union{Sphere,Rectangle,Box}, b::Union{Sphere,Rectangle,Box})::Bool
     if a isa Sphere && b isa Sphere
         return a.center == b.center && a.radius == b.radius
     elseif a isa Rectangle && b isa Rectangle
         return a.vertex == b.vertex && a.edge1 == b.edge1 && a.edge2 == b.edge2
+    elseif a isa Box && b isa Box
+        return a.vertex == b.vertex && a.edge1 == b.edge1 && a.edge2 == b.edge2 && a.edge3 == b.edge3
     else
         return false
     end
@@ -345,20 +408,29 @@ function main()
         Camera(Vec3(50.0, 52.0, 220.0), normalize(Vec3(0.0, 1.0, 0.0)), normalize(Vec3(0.0, -0.04, -1.0)), 30),
         30.0,
         [
-            Sphere(Vec3(1e5 + 1, 40.8, 81.6), 1e5, RGB(0.75, 0.25, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(-1e5 + 99, 40.8, 81.6), 1e5, RGB(0.25, 0.25, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(50.0, 40.8, 1e5), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(50.0, 40.8, -1e5 + 250), 1e5, RGB(0.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(50.0, 1e5, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(50.0, -1e5 + 81.6, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(65.0, 20.0, 20.0), 20.0, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
-            Sphere(Vec3(27.0, 16.5, 47.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), specular),
-            Sphere(Vec3(77.0, 16.5, 78.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), refractive),
-            # Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(0.5, 0.5, 0.5), diffuse),
+        #Sphere(Vec3(1e5 + 1, 40.8, 81.6), 1e5, RGB(0.75, 0.25, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
+        # Sphere(Vec3(-1e5 + 99, 40.8, 81.6), 1e5, RGB(0.25, 0.25, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+        # Sphere(Vec3(50.0, 40.8, 1e5), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+        # Sphere(Vec3(50.0, 40.8, -1e5 + 250), 1e5, RGB(0.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
+        # Sphere(Vec3(50.0, 1e5, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+        # Sphere(Vec3(50.0, -1e5 + 81.6, 81.6), 1e5, RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+        # Sphere(Vec3(65.0, 20.0, 20.0), 20.0, RGB(0.25, 0.75, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
+        # Sphere(Vec3(27.0, 16.5, 47.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), specular),
+        # Sphere(Vec3(77.0, 16.5, 78.0), 16.5, RGB(0.99, 0.99, 0.99), RGB(0.0, 0.0, 0.0), refractive),
+        # Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(0.5, 0.5, 0.5), diffuse),
         ],
         [
-            Rectangle(Vec3(35.0, 80.0, 65.0), Vec3(0.0, 0.0, 30.0), Vec3(30.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), 1.0 * RGB(1.0, 1.0, 1.0), diffuse),
-        ]
+            Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(1.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
+            Rectangle(Vec3(100.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.0, 1.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
+            Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            Rectangle(Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            Rectangle(Vec3(40.0, 99.0, 50.0), Vec3(0.0, 0.0, 15.0), Vec3(15.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), 1.0 * RGB(1.0, 1.0, 1.0), diffuse),
+        ],
+        [
+            Box(Vec3(20.0, 0.0, 25.0), Vec3(25.5, 0.0, -5.0), Vec3(5.0, 0.0, 25.5), Vec3(0.0, 65.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            Box(Vec3(55.0, 0.0, 55.0), Vec3(25.5, 0.0, 5.0), Vec3(-5.0, 0.0, 25.5), Vec3(0.0, 25.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+        ],
     )
 
     result = render(scene, (640, 480))
