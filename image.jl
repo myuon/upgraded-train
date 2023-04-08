@@ -41,19 +41,21 @@ struct Image
     end
 end
 
-function to_color_value(value::Float64, gamma::Float64, brightness::Float64)::Int
+function to_color_value(value::Float64, gamma::Float64, brightness::Float64, enable_tone_map::Bool)::Int
     if isnan(value)
         return 0
     end
 
     # tone mapping
-    value = value / (brightness + 1.0)
+    if enable_tone_map
+        value = value / (brightness + 1.0)
+    end
     value = max(min(value, 1.0), 0.0)^(1.0 / gamma)
 
     return round(Int, value * 255)
 end
 
-function save(filepath::String, image::Image, gamma::Float64)
+function save(filepath::String, image::Image, gamma::Float64, enable_tone_map::Bool)
     open("$filepath.ppm", "w") do io
         println(io, "P3")
         println(io, size(image.data)[1], " ", size(image.data)[2])
@@ -62,9 +64,9 @@ function save(filepath::String, image::Image, gamma::Float64)
         for j in 1:size(image.data)[2]
             for i in 1:size(image.data)[1]
                 b = to_brightness(image.data[i, j])
-                r = to_color_value(image.data[i, j].r, gamma, b)
-                g = to_color_value(image.data[i, j].g, gamma, b)
-                b = to_color_value(image.data[i, j].b, gamma, b)
+                r = to_color_value(image.data[i, j].r, gamma, b, enable_tone_map)
+                g = to_color_value(image.data[i, j].g, gamma, b, enable_tone_map)
+                b = to_color_value(image.data[i, j].b, gamma, b, enable_tone_map)
 
                 println(io, r, " ", g, " ", b)
             end

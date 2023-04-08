@@ -226,6 +226,7 @@ end
 
 const spp = parse(Int, get(ENV, "SPP", "4"))
 const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
+const enable_TONE_MAP = get(ENV, "ENABLE_TONE_MAP", "true") == "true"
 
 const russian_roulette_min = 5
 const russian_roulette_max = 10
@@ -356,13 +357,13 @@ function main()
             # Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(0.5, 0.5, 0.5), diffuse),
         ],
         [
-            Rectangle(Vec3(35.0, 80.0, 65.0), Vec3(0.0, 0.0, 30.0), Vec3(30.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), diffuse),
+            Rectangle(Vec3(35.0, 80.0, 65.0), Vec3(0.0, 0.0, 30.0), Vec3(30.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), 1.0 * RGB(1.0, 1.0, 1.0), diffuse),
         ]
     )
 
     result = render(scene, (640, 480))
 
-    save("output", result, 2.2)
+    save("output", result, 2.2, enable_TONE_MAP)
 end
 
 main()
