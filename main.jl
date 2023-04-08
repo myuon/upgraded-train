@@ -124,7 +124,7 @@ function hit(rect::Rectangle, ray::Ray)::Union{HitRecord,Nothing}
 
     qvec = cross(tvec, rect.edge1)
     v = dot(ray.direction, qvec) * invdet
-    if v < 0 || u + v > 1
+    if v < 0 || v > 1
         return nothing
     end
 
