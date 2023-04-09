@@ -84,18 +84,6 @@ function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle},Vec3}
     end
 end
 
-function is_same_shape(a::Union{Sphere,Rectangle,Box}, b::Union{Sphere,Rectangle,Box})::Bool
-    if a isa Sphere && b isa Sphere
-        return a.center == b.center && a.radius == b.radius
-    elseif a isa Rectangle && b isa Rectangle
-        return a.vertex == b.vertex && a.edge1 == b.edge1 && a.edge2 == b.edge2
-    elseif a isa Box && b isa Box
-        return a.vertex == b.vertex && a.edge1 == b.edge1 && a.edge2 == b.edge2 && a.edge3 == b.edge3
-    else
-        return false
-    end
-end
-
 const russian_roulette_min = 5
 const russian_roulette_max = 10
 
@@ -129,7 +117,7 @@ function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool):
                         shadowray = Ray(ht.point, normalize(lightp - ht.point))
 
                         shr = hit_in_scene(scene, shadowray)
-                        if !isnothing(shr) && is_same_shape(shr[2], light)
+                        if !isnothing(shr) && length(shr[1].point - lightp) < kEPS
                             G = abs(dot(normalize(cross(shr[2].edge1, shr[2].edge2)), shadowray.direction)) * abs(dot(shadowray.direction, ht.normal)) / length(lightp - ht.point)^2
                             result.data[i, j] += light.emit * weight * object.color * area_size(light) * G
                         end
