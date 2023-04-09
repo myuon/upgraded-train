@@ -188,7 +188,71 @@ function area_size(rect::Rectangle)::Float64
     return length(cross(rect.edge1, rect.edge2))
 end
 
-export Sphere, Box, rotate_y, Rectangle, hit, is_light, sample_on, area_size
-
+struct Triangle
+    vertex::Vec3
+    edge1::Vec3
+    edge2::Vec3
+    color::RGB
+    emit::RGB
+    reflection::Reflection
 end
 
+function hit(triangle::Triangle, ray::Ray)::Union{HitRecord,Nothing}
+    pvec = cross(ray.direction, triangle.edge2)
+    det = dot(triangle.edge1, pvec)
+
+    if abs(det) < kEPS
+        return nothing
+    end
+
+    invdet = 1 / det
+
+    tvec = ray.origin - triangle.vertex
+    u = dot(tvec, pvec) * invdet
+    if u < 0 || u > 1
+        return nothing
+    end
+
+    qvec = cross(tvec, triangle.edge1)
+    v = dot(ray.direction, qvec) * invdet
+    if v < 0 || u + v > 1
+        return nothing
+    end
+
+    t = dot(triangle.edge2, qvec) * invdet
+
+    if t < kEPS
+        return nothing
+    end
+
+    point = ray.origin + t * ray.direction
+
+    return HitRecord(
+        point,
+        normalize(cross(triangle.edge1, triangle.edge2)),
+        t,
+    )
+end
+
+struct Mesh
+    triangles::Vector{Triangle}
+end
+
+function hit(mesh::Mesh, ray::Ray)::Union{HitRecord,Nothing}
+    distance = Inf
+    hr = nothing
+
+    for triangle in mesh.triangles
+        h = hit(triangle, ray)
+        if !isnothing(h) && h.distance < distance
+            distance = h.distance
+            hr = h
+        end
+    end
+
+    return hr
+end
+
+export Sphere, Box, rotate_y, Rectangle, hit, is_light, sample_on, area_size, Triangle, Mesh
+
+end

@@ -19,9 +19,10 @@ struct Scene
     objects::Vector{Sphere}
     rectangles::Vector{Rectangle}
     boxes::Vector{Box}
+    meshes::Vector{Mesh}
 end
 
-function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Sphere,Rectangle,Box}},Nothing}
+function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Sphere,Rectangle,Box,Mesh}},Nothing}
     distance = Inf
     result = nothing
 
@@ -43,6 +44,13 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Spher
         hr = hit(box, ray)
         if !isnothing(hr) && hr.distance < distance
             result = hr, box
+            distance = hr.distance
+        end
+    end
+    for mesh in scene.meshes
+        hr = hit(mesh, ray)
+        if !isnothing(hr) && hr.distance < distance
+            result = hr, mesh
             distance = hr.distance
         end
     end
