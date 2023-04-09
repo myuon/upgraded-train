@@ -90,7 +90,7 @@ function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle},Vec3}
         if is_light(object)
             sample_count += 1
             if sample_count == light_index
-                return object, sample_on_sphere(object)
+                return object, sample_on(object)
             end
         end
     end
@@ -98,7 +98,7 @@ function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle},Vec3}
         if is_light(rectangle)
             sample_count += 1
             if sample_count == light_index
-                return rectangle, sample_on_rectangle(rectangle)
+                return rectangle, sample_on(rectangle)
             end
         end
     end
@@ -150,8 +150,8 @@ function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool):
 
                         shr = hit_in_scene(scene, shadowray)
                         if !isnothing(shr) && is_same_shape(shr[2], light)
-                            G = abs(dot(normalize(cross(shr[2].edge1, shr[2].edge2)), normalize(lightp - ht.point))) * abs(dot(normalize(lightp - ht.point), ht.normal)) / length(lightp - ht.point)^2
-                            result.data[i, j] += light.emit * weight * object.color * length(light.edge1) * length(light.edge2) * G
+                            G = abs(dot(normalize(cross(shr[2].edge1, shr[2].edge2)), shadowray.direction)) * abs(dot(shadowray.direction, ht.normal)) / length(lightp - ht.point)^2
+                            result.data[i, j] += light.emit * weight * object.color * area_size(light) * G
                         end
 
                         prev_nee_contributed = true
@@ -204,10 +204,10 @@ function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool):
                             prob = 0.25 + 0.5 * Re
                             if rand() < prob
                                 ray = reflectionray
-                                weight *= object.color * Re / (russian_roulette * prob)
+                                weight *= object.color * Re / russian_roulette / prob
                             else
                                 ray = refractionray
-                                weight *= object.color * Tr / (russian_roulette * (1 - prob))
+                                weight *= object.color * Tr / russian_roulette / (1 - prob)
                             end
                         end
                     else

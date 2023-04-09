@@ -5,13 +5,12 @@ include("src/ray.jl")
 include("src/shape.jl")
 include("src/renderer.jl")
 
-module Main
-
-using ...Vectors
-using ...Images
-using ...Loaders: load_obj
-using ...Renderers
-using ...Shapes
+using .Vectors
+using .Images
+using .Loaders: load_obj
+using .Renderers
+using .Shapes
+using .Rays
 
 const spp = parse(Int, get(ENV, "SPP", "4"))
 const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
@@ -60,6 +59,4 @@ function main()
     save("output", result, 2.2, enable_TONE_MAP)
 end
 
-end
-
-Main.main()
+main()

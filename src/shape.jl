@@ -4,8 +4,6 @@ using ...Vectors
 using ...Images
 using ...Rays
 
-@enum Reflection diffuse specular refractive
-
 struct Sphere
     center::Vec3
     radius::Float64
@@ -14,7 +12,7 @@ struct Sphere
     reflection::Reflection
 end
 
-function sample_on_sphere(sphere::Sphere)::Vec3
+function sample_on(sphere::Sphere)::Vec3
     phy = 2π * rand()
     z = rand()
 
@@ -25,6 +23,10 @@ end
 
 function is_light(sphere::Sphere)::Bool
     return sphere.emit.r > 0 || sphere.emit.g > 0 || sphere.emit.b > 0
+end
+
+function area_size(sphere::Sphere)::Float64
+    return 4π * sphere.radius^2
 end
 
 function hit(sphere::Sphere, ray::Ray)::Union{HitRecord,Nothing}
@@ -174,7 +176,7 @@ function hit(rect::Rectangle, ray::Ray)::Union{HitRecord,Nothing}
     )
 end
 
-function sample_on_rectangle(rect::Rectangle)::Vec3
+function sample_on(rect::Rectangle)::Vec3
     return rect.vertex + rand() * rect.edge1 + rand() * rect.edge2
 end
 
@@ -182,7 +184,11 @@ function is_light(rect::Rectangle)::Bool
     return rect.emit.r > 0 || rect.emit.g > 0 || rect.emit.b > 0
 end
 
-export Sphere, Box, rotate_y, Reflection, diffuse, specular, refractive, Rectangle, hit, is_light, sample_on_sphere, sample_on_rectangle
+function area_size(rect::Rectangle)::Float64
+    return length(cross(rect.edge1, rect.edge2))
+end
+
+export Sphere, Box, rotate_y, Rectangle, hit, is_light, sample_on, area_size
 
 end
 

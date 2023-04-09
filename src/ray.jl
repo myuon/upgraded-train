@@ -15,6 +15,8 @@ struct HitRecord
   distance::Float64
 end
 
-export Ray, HitRecord, kEPS
+@enum Reflection diffuse specular refractive
+
+export Ray, HitRecord, kEPS, Reflection, diffuse, specular, refractive
 
 end
