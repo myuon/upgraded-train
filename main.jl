@@ -343,7 +343,8 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
 
                         shr = hit_in_scene(scene, shadowray)
                         if !isnothing(shr) && is_same_shape(shr[2], light)
-                            result.data[i, j] += light.emit * weight * object.color * 4 * dot(shadowray.direction, orientnormal)
+                            G = abs(dot(normalize(cross(shr[2].edge1, shr[2].edge2)), normalize(lightp - ht.point))) * abs(dot(normalize(lightp - ht.point), ht.normal)) / Vectors.length(lightp - ht.point)^2
+                            result.data[i, j] += light.emit * weight * object.color * Vectors.length(light.edge1) * Vectors.length(light.edge2) * G
                         end
 
                         prev_nee_contributed = true
@@ -443,7 +444,7 @@ function main()
             Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
             Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
             Rectangle(Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Rectangle(Vec3(40.0, 99.0, 50.0), Vec3(0.0, 0.0, 15.0), Vec3(15.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), 1.0 * RGB(1.0, 1.0, 1.0), diffuse),
+            Rectangle(Vec3(40.0, 99.0, 50.0), Vec3(0.0, 0.0, 15.0), Vec3(15.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), 36.0 * RGB(1.0, 1.0, 1.0), diffuse),
         ],
         [
             rotate_y(Box(Vec3(15.0, 0.0, 20.0), Vec3(30.0, 0.0, 0.0), Vec3(0.0, 0.0, 30.0), Vec3(0.0, 65.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse), 2π * 20 / 360),

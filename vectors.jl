@@ -82,6 +82,6 @@ cross(v1::Vec3, v2::UnitVec3)::Vec3 = cross(v1, as_vec3(v2))
 
 -(a::UnitVec3) = UnitVec3(-a.data[1], -a.data[2], -a.data[3])
 
-export Vec3, UnitVec3, as_vector, as_vec3, length, normalize, dot, cross
+export Vec3, UnitVec3, length, as_vector, as_vec3, length, normalize, dot, cross
 
 end
