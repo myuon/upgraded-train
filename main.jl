@@ -1,10 +1,12 @@
 include("image.jl")
 include("vectors.jl")
+include("loader.jl")
 
 kEPS = 1e-6
 
 using .Vectors
 using .Images
+using .Loaders
 
 struct Ray
     origin::Vec3
@@ -423,6 +425,9 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
 end
 
 function main()
+    obj = load_obj("assets/CornellBox-Empty-CO.obj")
+    @show obj
+
     scene = Scene(
         Camera(Vec3(50.0, 52.0, 220.0), normalize(Vec3(0.0, 1.0, 0.0)), normalize(Vec3(0.0, -0.04, -1.0)), 30),
         30.0,
