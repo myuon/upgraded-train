@@ -17,8 +17,9 @@ const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
 const enable_TONE_MAP = get(ENV, "ENABLE_TONE_MAP", "true") == "true"
 
 function main()
-    obj = load_obj("assets/CornellBox-Empty-CO.obj")
-    @show obj
+    objects, materials = load_obj("assets/CornellBox-Empty-CO.obj")
+    @show objects
+    @show materials
 
     scene = Scene(
         Camera(
