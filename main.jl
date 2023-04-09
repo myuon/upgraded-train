@@ -204,6 +204,24 @@ function hit(box::Box, ray::Ray)::Union{HitRecord,Nothing}
     return hr
 end
 
+rotate_y(v::Vec3, angle::Float64)::Vec3 = Vec3(
+    cos(angle) * v.data[1] + sin(angle) * v.data[3],
+    v.data[2],
+    -sin(angle) * v.data[1] + cos(angle) * v.data[3],
+)
+
+function rotate_y(b::Box, angle::Float64)::Box
+    return Box(
+        b.vertex,
+        rotate_y(b.edge1, angle),
+        rotate_y(b.edge2, angle),
+        rotate_y(b.edge3, angle),
+        b.color,
+        b.emit,
+        b.reflection,
+    )
+end
+
 struct Scene
     camera::Camera
     screensize::Int
@@ -420,16 +438,16 @@ function main()
         # Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(0.5, 0.5, 0.5), diffuse),
         ],
         [
-            Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(1.0, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
-            Rectangle(Vec3(100.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.0, 1.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
+            Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.3, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
+            Rectangle(Vec3(100.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.0, 0.3, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
             Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
             Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
             Rectangle(Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
             Rectangle(Vec3(40.0, 99.0, 50.0), Vec3(0.0, 0.0, 15.0), Vec3(15.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), 1.0 * RGB(1.0, 1.0, 1.0), diffuse),
         ],
         [
-            Box(Vec3(20.0, 0.0, 25.0), Vec3(25.5, 0.0, -5.0), Vec3(5.0, 0.0, 25.5), Vec3(0.0, 65.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Box(Vec3(55.0, 0.0, 55.0), Vec3(25.5, 0.0, 5.0), Vec3(-5.0, 0.0, 25.5), Vec3(0.0, 25.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            rotate_y(Box(Vec3(15.0, 0.0, 20.0), Vec3(30.0, 0.0, 0.0), Vec3(0.0, 0.0, 30.0), Vec3(0.0, 65.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse), 2π * 20 / 360),
+            rotate_y(Box(Vec3(65.0, 0.0, 55.0), Vec3(25.0, 0.0, 0.0), Vec3(0.0, 0.0, 25.0), Vec3(0.0, 25.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse), 2π * -20 / 360),
         ],
     )
 
