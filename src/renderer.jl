@@ -1,82 +1,16 @@
-include("image.jl")
-include("vectors.jl")
-include("loader.jl")
+module Renderers
 
-kEPS = 1e-6
-
-using .Vectors
-using .Images
-using .Loaders
-
-struct Ray
-    origin::Vec3
-    direction::UnitVec3
-end
+using ...Vectors
+using ...Images
+using ...Loaders
+using ...Shapes
+using ...Rays
 
 struct Camera
     origin::Vec3
     up::UnitVec3
     direction::UnitVec3
     screendist::Float64
-end
-
-@enum Reflection diffuse specular refractive
-
-struct Sphere
-    center::Vec3
-    radius::Float64
-    color::RGB
-    emit::RGB
-    reflection::Reflection
-end
-
-function sample_on_sphere(sphere::Sphere)::Vec3
-    phy = 2π * rand()
-    z = rand()
-
-    k = sqrt(1 - z^2)
-
-    return sphere.radius * Vec3(k * cos(phy), k * sin(phy), z) + sphere.center
-end
-
-function is_light(sphere::Sphere)::Bool
-    return sphere.emit.r > 0 || sphere.emit.g > 0 || sphere.emit.b > 0
-end
-
-struct HitRecord
-    point::Vec3
-    normal::UnitVec3
-    distance::Float64
-end
-
-function hit(sphere::Sphere, ray::Ray)::Union{HitRecord,Nothing}
-    po = sphere.center - ray.origin
-    b = dot(po, ray.direction)
-    discriminant = b^2 - dot(po, po) + sphere.radius^2
-
-    if discriminant < 0
-        return nothing
-    end
-
-    t1 = b - sqrt(discriminant)
-    t2 = b + sqrt(discriminant)
-    if t1 < kEPS && t2 < kEPS
-        return nothing
-    end
-
-    if t1 > kEPS
-        distance = t1
-    else
-        distance = t2
-    end
-
-    point = ray.origin + distance * ray.direction
-
-    return HitRecord(
-        point,
-        normalize(point - sphere.center),
-        distance,
-    )
 end
 
 function sample_lambertian_cosine_pdf(normal::UnitVec3)::UnitVec3
@@ -96,131 +30,6 @@ function sample_lambertian_cosine_pdf(normal::UnitVec3)::UnitVec3
         u * cos(phy) * cos_theta +
         v * sin(phy) * cos_theta +
         w * sqrt(1 - cos_theta^2)
-    )
-end
-
-struct Rectangle
-    vertex::Vec3
-    edge1::Vec3
-    edge2::Vec3
-    color::RGB
-    emit::RGB
-    reflection::Reflection
-end
-
-function hit(rect::Rectangle, ray::Ray)::Union{HitRecord,Nothing}
-    pvec = cross(ray.direction, rect.edge2)
-    det = dot(rect.edge1, pvec)
-
-    if abs(det) < kEPS
-        return nothing
-    end
-
-    invdet = 1 / det
-
-    tvec = ray.origin - rect.vertex
-    u = dot(tvec, pvec) * invdet
-    if u < 0 || u > 1
-        return nothing
-    end
-
-    qvec = cross(tvec, rect.edge1)
-    v = dot(ray.direction, qvec) * invdet
-    if v < 0 || v > 1
-        return nothing
-    end
-
-    t = dot(rect.edge2, qvec) * invdet
-
-    if t < kEPS
-        return nothing
-    end
-
-    point = ray.origin + t * ray.direction
-
-    return HitRecord(
-        point,
-        normalize(cross(rect.edge1, rect.edge2)),
-        t,
-    )
-end
-
-function sample_on_rectangle(rect::Rectangle)::Vec3
-    return rect.vertex + rand() * rect.edge1 + rand() * rect.edge2
-end
-
-function is_light(rect::Rectangle)::Bool
-    return rect.emit.r > 0 || rect.emit.g > 0 || rect.emit.b > 0
-end
-
-struct Box
-    vertex::Vec3
-    edge1::Vec3
-    edge2::Vec3
-    edge3::Vec3
-    color::RGB
-    emit::RGB
-    reflection::Reflection
-end
-
-function hit(box::Box, ray::Ray)::Union{HitRecord,Nothing}
-    distance = Inf
-    hr = nothing
-
-    h = hit(Rectangle(box.vertex, box.edge1, box.edge2, box.color, box.emit, box.reflection), ray)
-    if !isnothing(h) && h.distance < distance
-        distance = h.distance
-        hr = h
-    end
-
-    h = hit(Rectangle(box.vertex, box.edge1, box.edge3, box.color, box.emit, box.reflection), ray)
-    if !isnothing(h) && h.distance < distance
-        distance = h.distance
-        hr = h
-    end
-
-    h = hit(Rectangle(box.vertex, box.edge2, box.edge3, box.color, box.emit, box.reflection), ray)
-    if !isnothing(h) && h.distance < distance
-        distance = h.distance
-        hr = h
-    end
-
-    h = hit(Rectangle(box.vertex + box.edge1, box.edge2, box.edge3, box.color, box.emit, box.reflection), ray)
-    if !isnothing(h) && h.distance < distance
-        distance = h.distance
-        hr = h
-    end
-
-    h = hit(Rectangle(box.vertex + box.edge2, box.edge1, box.edge3, box.color, box.emit, box.reflection), ray)
-    if !isnothing(h) && h.distance < distance
-        distance = h.distance
-        hr = h
-    end
-
-    h = hit(Rectangle(box.vertex + box.edge3, box.edge1, box.edge2, box.color, box.emit, box.reflection), ray)
-    if !isnothing(h) && h.distance < distance
-        distance = h.distance
-        hr = h
-    end
-
-    return hr
-end
-
-rotate_y(v::Vec3, angle::Float64)::Vec3 = Vec3(
-    cos(angle) * v.data[1] + sin(angle) * v.data[3],
-    v.data[2],
-    -sin(angle) * v.data[1] + cos(angle) * v.data[3],
-)
-
-function rotate_y(b::Box, angle::Float64)::Box
-    return Box(
-        b.vertex,
-        rotate_y(b.edge1, angle),
-        rotate_y(b.edge2, angle),
-        rotate_y(b.edge3, angle),
-        b.color,
-        b.emit,
-        b.reflection,
     )
 end
 
@@ -307,14 +116,10 @@ function is_same_shape(a::Union{Sphere,Rectangle,Box}, b::Union{Sphere,Rectangle
     end
 end
 
-const spp = parse(Int, get(ENV, "SPP", "4"))
-const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
-const enable_TONE_MAP = get(ENV, "ENABLE_TONE_MAP", "true") == "true"
-
 const russian_roulette_min = 5
 const russian_roulette_max = 10
 
-function render(scene::Scene, size::Tuple{Int,Int})::Image
+function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool)::Image
     result = Image(size)
 
     screenx = normalize(cross(scene.camera.direction, scene.camera.up)) * Float64(scene.screensize)
@@ -345,8 +150,8 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
 
                         shr = hit_in_scene(scene, shadowray)
                         if !isnothing(shr) && is_same_shape(shr[2], light)
-                            G = abs(dot(normalize(cross(shr[2].edge1, shr[2].edge2)), normalize(lightp - ht.point))) * abs(dot(normalize(lightp - ht.point), ht.normal)) / Vectors.length(lightp - ht.point)^2
-                            result.data[i, j] += light.emit * weight * object.color * Vectors.length(light.edge1) * Vectors.length(light.edge2) * G
+                            G = abs(dot(normalize(cross(shr[2].edge1, shr[2].edge2)), normalize(lightp - ht.point))) * abs(dot(normalize(lightp - ht.point), ht.normal)) / length(lightp - ht.point)^2
+                            result.data[i, j] += light.emit * weight * object.color * length(light.edge1) * length(light.edge2) * G
                         end
 
                         prev_nee_contributed = true
@@ -424,3 +229,6 @@ function render(scene::Scene, size::Tuple{Int,Int})::Image
     result
 end
 
+export Camera, Scene, render
+
+end

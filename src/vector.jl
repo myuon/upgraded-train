@@ -3,6 +3,7 @@ module Vectors
 import Base: +
 import Base: -
 import Base: *
+import Base: length
 
 struct Vec3
     data::Tuple{Float64,Float64,Float64}

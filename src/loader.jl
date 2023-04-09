@@ -1,7 +1,6 @@
 module Loaders
-include("vectors.jl")
 
-import .Vectors
+import ...Vectors
 
 struct Material
     name::String

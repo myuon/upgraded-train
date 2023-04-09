@@ -1,11 +1,33 @@
+include("src/vector.jl")
+include("src/image.jl")
+include("src/loader.jl")
+include("src/ray.jl")
+include("src/shape.jl")
 include("src/renderer.jl")
+
+module Main
+
+using ...Vectors
+using ...Images
+using ...Loaders: load_obj
+using ...Renderers
+using ...Shapes
+
+const spp = parse(Int, get(ENV, "SPP", "4"))
+const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
+const enable_TONE_MAP = get(ENV, "ENABLE_TONE_MAP", "true") == "true"
 
 function main()
     obj = load_obj("assets/CornellBox-Empty-CO.obj")
     @show obj
 
     scene = Scene(
-        Camera(Vec3(50.0, 52.0, 220.0), normalize(Vec3(0.0, 1.0, 0.0)), normalize(Vec3(0.0, -0.04, -1.0)), 30),
+        Camera(
+            Vec3(50.0, 52.0, 220.0),
+            normalize(Vec3(0.0, 1.0, 0.0)),
+            normalize(Vec3(0.0, -0.04, -1.0)),
+            30,
+        ),
         30.0,
         [
         #Sphere(Vec3(1e5 + 1, 40.8, 81.6), 1e5, RGB(0.75, 0.25, 0.25), RGB(0.0, 0.0, 0.0), diffuse),
@@ -33,9 +55,11 @@ function main()
         ],
     )
 
-    result = render(scene, (640, 480))
+    result = render(scene, (640, 480), spp, enable_NEE)
 
     save("output", result, 2.2, enable_TONE_MAP)
 end
 
-main()
+end
+
+Main.main()
