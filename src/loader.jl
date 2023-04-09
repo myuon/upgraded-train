@@ -70,8 +70,13 @@ function parse_mtl_file(mtl_string::String)
     lines = split(mtl_string, "\r\n")
     material = nothing
 
-    for line in lines
+    for line in [strip_line_comment(line) for line in lines]
         tokens = split(line, ' ')
+        tokens = [trim(token) for token in tokens if trim(token) != ""]
+
+        if length(tokens) == 0
+            continue
+        end
 
         if tokens[1] == "newmtl"
             if !isnothing(material)
@@ -107,6 +112,14 @@ end
 function load_mtl_file(filename::String)
     file_content = read(filename, String)
     return parse_mtl_file(file_content)
+end
+
+function trim(s::AbstractString)
+    return replace(s, r"^\s+|\s+$" => "")
+end
+
+function strip_line_comment(s::AbstractString)
+    return replace(s, r"#.*" => "")
 end
 
 export parse_obj, load_obj
