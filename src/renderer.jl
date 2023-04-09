@@ -112,6 +112,10 @@ function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool):
 
                 prev_nee_contributed = false
                 hr = hit_in_scene(scene, ray)
+                if isnothing(hr)
+                    result.data[i, j] += RGB(0.5, 0.5, 0.5)
+                    continue
+                end
                 while !isnothing(hr)
                     count += 1
                     ht, object = hr

@@ -236,6 +236,22 @@ end
 
 struct Mesh
     triangles::Vector{Triangle}
+    reflection::Reflection
+    color::RGB
+    emit::RGB
+
+    function Mesh(triangles::Vector{Triangle})
+        return new(triangles, diffuse, RGB(0, 0, 0), RGB(0, 0, 0))
+    end
+
+    function Mesh(faces::Vector{Vector{Vec3}})
+        triangles = Vector{Triangle}()
+        for face in faces
+            push!(triangles, Triangle(face[1], face[2] - face[1], face[3] - face[1], RGB(0.5, 0.5, 0.5), RGB(0, 0, 0), diffuse))
+        end
+
+        return new(triangles, diffuse, RGB(0, 0, 0), RGB(0, 0, 0))
+    end
 end
 
 function hit(mesh::Mesh, ray::Ray)::Union{HitRecord,Nothing}

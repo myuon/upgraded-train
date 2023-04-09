@@ -2,15 +2,11 @@ module Loaders
 
 import ...Vectors
 
-struct Face
-    indices::Vector{Int}
-end
-
 mutable struct Object
     name::String
     material::String
     vertices::Vector{Vectors.Vec3}
-    faces::Vector{Face}
+    faces::Vector{Vector{Vectors.Vec3}}
 end
 
 function load_obj(filename::String)
@@ -19,7 +15,8 @@ function load_obj(filename::String)
     objects = Dict{String,Object}()
     materials = nothing
 
-    object = Object(".", "", [], [])
+    vertices = Vectors.Vec3[]
+    object = Object("", "", [], [])
 
     for line in lines
         tokens = split(line)
@@ -32,15 +29,19 @@ function load_obj(filename::String)
         if keyword == "mtllib"
             materials = load_mtl_file(change_base_path(filename, String(tokens[2])))
         elseif keyword == "g"
-            objects[object.name] = object
-            object = Object(String(tokens[2]), "", [], [])
+            if object.name == ""
+                object.name = String(tokens[2])
+            else
+                objects[object.name] = object
+                object = Object(String(tokens[2]), "", [], [])
+            end
         elseif keyword == "v"
-            push!(object.vertices, Vectors.Vec3(parse(Float64, tokens[2]), parse(Float64, tokens[3]), parse(Float64, tokens[4])))
+            push!(vertices, Vectors.Vec3(parse(Float64, tokens[2]), parse(Float64, tokens[3]), parse(Float64, tokens[4])))
         elseif keyword == "usemtl"
             object.material = String(tokens[2])
         elseif keyword == "f"
             face_indices = [parse(Int, x) for x in tokens[2:end]]
-            push!(object.faces, Face(face_indices))
+            push!(object.faces, [vertices[index > 0 ? index : length(vertices) + 1 + index] for index in face_indices])
         end
     end
 

@@ -18,15 +18,18 @@ const enable_TONE_MAP = get(ENV, "ENABLE_TONE_MAP", "true") == "true"
 
 function main()
     objects, materials = load_obj("assets/CornellBox-Empty-CO.obj")
-    @show objects
-    @show materials
+
+    meshes = Mesh[]
+    for (_, object) in objects
+        push!(meshes, Mesh(object.faces))
+    end
 
     scene = Scene(
         Camera(
-            Vec3(50.0, 52.0, 220.0),
+            Vec3(0.0, -4.52, 1.64),
             normalize(Vec3(0.0, 1.0, 0.0)),
-            normalize(Vec3(0.0, -0.04, -1.0)),
-            30,
+            normalize(Vec3(0.0, 4.0, -1.0)),
+            5,
         ),
         30.0,
         [
@@ -42,18 +45,18 @@ function main()
         # Sphere(Vec3(50.0, 70.0, 81.6), 5.0, RGB(0.0, 0.0, 0.0), RGB(0.5, 0.5, 0.5), diffuse),
         ],
         [
-            Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.3, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
-            Rectangle(Vec3(100.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.0, 0.3, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
-            Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
-            Rectangle(Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            # Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.3, 0.0, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
+            # Rectangle(Vec3(100.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.0, 0.3, 0.0), RGB(0.0, 0.0, 0.0), diffuse),
+            # Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            # Rectangle(Vec3(0.0, 0.0, 0.0), Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
+            # Rectangle(Vec3(0.0, 100.0, 0.0), Vec3(100.0, 0.0, 0.0), Vec3(0.0, 0.0, 100.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse),
             Rectangle(Vec3(40.0, 99.0, 50.0), Vec3(0.0, 0.0, 15.0), Vec3(15.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), 36.0 * RGB(1.0, 1.0, 1.0), diffuse),
         ],
         [
-            rotate_y(Box(Vec3(15.0, 0.0, 20.0), Vec3(30.0, 0.0, 0.0), Vec3(0.0, 0.0, 30.0), Vec3(0.0, 65.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse), 2π * 20 / 360),
-            rotate_y(Box(Vec3(65.0, 0.0, 55.0), Vec3(25.0, 0.0, 0.0), Vec3(0.0, 0.0, 25.0), Vec3(0.0, 25.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse), 2π * -20 / 360),
+        # rotate_y(Box(Vec3(15.0, 0.0, 20.0), Vec3(30.0, 0.0, 0.0), Vec3(0.0, 0.0, 30.0), Vec3(0.0, 65.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse), 2π * 20 / 360),
+        # rotate_y(Box(Vec3(65.0, 0.0, 55.0), Vec3(25.0, 0.0, 0.0), Vec3(0.0, 0.0, 25.0), Vec3(0.0, 25.0, 0.0), RGB(0.75, 0.75, 0.75), RGB(0.0, 0.0, 0.0), diffuse), 2π * -20 / 360),
         ],
-        [],
+        meshes,
     )
 
     result = render(scene, (640, 480), spp, enable_NEE)
