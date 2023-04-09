@@ -13,26 +13,6 @@ struct Camera
     screendist::Float64
 end
 
-function sample_lambertian_cosine_pdf(normal::UnitVec3)::UnitVec3
-    w = normal
-    if abs(w.data[1]) > kEPS
-        u = normalize(cross(Vec3(0.0, 1.0, 0.0), w))
-    else
-        u = normalize(cross(Vec3(1.0, 0.0, 0.0), w))
-    end
-
-    v = cross(w, u)
-
-    phy = 2π * rand()
-    cos_theta = sqrt(rand())
-
-    normalize(
-        u * cos(phy) * cos_theta +
-        v * sin(phy) * cos_theta +
-        w * sqrt(1 - cos_theta^2)
-    )
-end
-
 struct Scene
     camera::Camera
     screensize::Int
@@ -170,50 +150,8 @@ function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool):
                         break
                     end
 
-                    if object.reflection == diffuse
-                        weight *= object.color / russian_roulette
-                        ray = Ray(ht.point, sample_lambertian_cosine_pdf(orientnormal))
-                    elseif object.reflection == specular
-                        weight *= object.color / russian_roulette
-                        ray = Ray(ht.point, normalize(as_vec3(ray.direction) - ht.normal * 2.0 * dot(ht.normal, ray.direction)))
-                    elseif object.reflection == refractive
-                        reflectionray = Ray(ht.point, normalize(as_vec3(ray.direction) - ht.normal * 2.0 * dot(ht.normal, ray.direction)))
-                        into = dot(ht.normal, orientnormal) > 0
-
-                        nc = 1.0
-                        nt = 1.5
-                        nnt = into ? nc / nt : nt / nc
-                        ddn = dot(ray.direction, orientnormal)
-                        cos2t = 1.0 - nnt^2 * (1.0 - ddn^2)
-
-                        if cos2t < 0
-                            weight *= object.color / russian_roulette
-                            ray = reflectionray
-                        else
-                            refractionray = Ray(ht.point, normalize(as_vec3(ray.direction) * nnt - ht.normal * (into ? 1.0 : -1.0) * (ddn * nnt + sqrt(cos2t))))
-
-                            a = nt - nc
-                            b = nt + nc
-                            R0 = a^2 / b^2
-
-                            c = 1.0 - (into ? -ddn : dot(refractionray.direction, -orientnormal))
-
-                            Re = R0 + (1.0 - R0) * c^5
-                            Tr = (1.0 - Re) * (into ? nc / nt : nt / nc)^2
-
-                            prob = 0.25 + 0.5 * Re
-                            if rand() < prob
-                                ray = reflectionray
-                                weight *= object.color * Re / russian_roulette / prob
-                            else
-                                ray = refractionray
-                                weight *= object.color * Tr / russian_roulette / (1 - prob)
-                            end
-                        end
-                    else
-                        break
-                    end
-
+                    weightdelta, ray = nextpath(object.reflection, ht, orientnormal)
+                    weight *= object.color * weightdelta / russian_roulette
                     hr = hit_in_scene(scene, ray)
                 end
             end
