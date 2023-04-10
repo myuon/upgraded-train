@@ -247,7 +247,12 @@ struct Mesh
     function Mesh(faces::Vector{Vector{Vec3}})
         triangles = Vector{Triangle}()
         for face in faces
-            push!(triangles, Triangle(face[1], face[2] - face[1], face[3] - face[1], RGB(0.5, 0.5, 0.5), RGB(0, 0, 0), diffuse))
+            origin = face[1]
+            prev = face[2]
+            for current in face[3:end]
+                push!(triangles, Triangle(origin, prev - origin, current - origin, RGB(0.5, 0.5, 0.5), RGB(0, 0, 0), diffuse))
+                prev = current
+            end
         end
 
         return new(triangles, diffuse, RGB(0, 0, 0), RGB(0, 0, 0))
