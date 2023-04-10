@@ -163,7 +163,7 @@ function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool):
                         break
                     end
 
-                    weightdelta, ray = nextpath(object.reflection, ht, orientnormal)
+                    weightdelta, ray = nextpath(object.reflection, ray, ht, orientnormal)
                     weight *= object.color * weightdelta / russian_roulette
                     hr = hit_in_scene(scene, ray)
                 end

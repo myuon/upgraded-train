@@ -37,7 +37,7 @@ function sample_lambertian_cosine_pdf(normal::UnitVec3)::UnitVec3
     )
 end
 
-function nextpath(reflection::Reflection, ht::HitRecord, orientnormal::UnitVec3)::Tuple{Float64,Ray}
+function nextpath(reflection::Reflection, ray::Ray, ht::HitRecord, orientnormal::UnitVec3)::Tuple{Float64,Ray}
     if reflection == diffuse
         1.0, Ray(ht.point, sample_lambertian_cosine_pdf(orientnormal))
     elseif reflection == specular
@@ -53,8 +53,7 @@ function nextpath(reflection::Reflection, ht::HitRecord, orientnormal::UnitVec3)
         cos2t = 1.0 - nnt^2 * (1.0 - ddn^2)
 
         if cos2t < 0
-            weight *= object.color / russian_roulette
-            ray = reflectionray
+            1.0, reflectionray
         else
             refractionray = Ray(ht.point, normalize(as_vec3(ray.direction) * nnt - ht.normal * (into ? 1.0 : -1.0) * (ddn * nnt + sqrt(cos2t))))
 

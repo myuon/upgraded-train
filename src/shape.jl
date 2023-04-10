@@ -226,15 +226,15 @@ end
 
 struct Mesh
     triangles::Vector{Triangle}
-    reflection::Reflection
     color::RGB
     emit::RGB
+    reflection::Reflection
 
     function Mesh(triangles::Vector{Triangle}, color::RGB)
         return new(triangles, diffuse, color, RGB(0, 0, 0))
     end
 
-    function Mesh(faces::Vector{Vector{Vec3}}, color::RGB, emission::RGB)
+    function Mesh(faces::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection)
         triangles = Vector{Triangle}()
         for face in faces
             origin = face[1]
@@ -245,7 +245,7 @@ struct Mesh
             end
         end
 
-        return new(triangles, diffuse, color, emission)
+        return new(triangles, color, emission, reflection)
     end
 end
 

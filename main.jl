@@ -29,7 +29,16 @@ function main()
         else
             emission = RGB(0.0, 0.0, 0.0)
         end
-        push!(meshes, Mesh(object.faces, color, emission))
+        if material.illum == 5
+            reflection = specular
+            color = RGB(1.0, 1.0, 1.0)
+        elseif material.illum == 7
+            reflection = refractive
+            color = RGB(1.0, 1.0, 1.0)
+        else
+            reflection = diffuse
+        end
+        push!(meshes, Mesh(object.faces, color, emission, reflection))
     end
 
     scene = Scene(
