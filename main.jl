@@ -15,9 +15,10 @@ using .Rays
 const spp = parse(Int, get(ENV, "SPP", "4"))
 const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
 const enable_TONE_MAP = get(ENV, "ENABLE_TONE_MAP", "true") == "true"
+const OBJ_FILE = get(ENV, "OBJ_FILE", "assets/test.obj")
 
 function main()
-    objects, materials = load_obj("assets/CornellBox-Empty-CO.obj")
+    objects, materials = load_obj(OBJ_FILE)
 
     meshes = Mesh[]
     for (name, object) in objects
@@ -28,12 +29,12 @@ function main()
 
     scene = Scene(
         Camera(
-            Vec3(0.0, -4.52, 1.64),
+            Vec3(0.0, 1.0, 5.0),
             normalize(Vec3(0.0, 1.0, 0.0)),
-            normalize(Vec3(0.0, 4.0, -1.0)),
+            normalize(Vec3(0.0, 0.0, -1.0)),
             5,
         ),
-        10.0,
+        4,
         [],
         [
             Rectangle(Vec3(40.0, 99.0, 50.0), Vec3(0.0, 0.0, 15.0), Vec3(15.0, 0.0, 0.0), RGB(1.0, 1.0, 1.0), 36.0 * RGB(1.0, 1.0, 1.0), diffuse),

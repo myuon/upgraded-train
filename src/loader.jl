@@ -5,7 +5,6 @@ import ...Vectors
 mutable struct Object
     name::String
     material::String
-    vertices::Vector{Vectors.Vec3}
     faces::Vector{Vector{Vectors.Vec3}}
 end
 
@@ -16,7 +15,7 @@ function load_obj(filename::String)
     materials = nothing
 
     vertices = Vectors.Vec3[]
-    object = Object("", "", [], [])
+    object = Object("", "", [])
 
     for line in lines
         tokens = split(line)
@@ -33,7 +32,7 @@ function load_obj(filename::String)
                 object.name = String(tokens[2])
             else
                 objects[object.name] = object
-                object = Object(String(tokens[2]), "", [], [])
+                object = Object(String(tokens[2]), "", [])
             end
         elseif keyword == "v"
             push!(vertices, Vectors.Vec3(parse(Float64, tokens[2]), parse(Float64, tokens[3]), parse(Float64, tokens[4])))

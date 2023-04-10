@@ -39,6 +39,8 @@ cross(v1::Vec3, v2::Vec3)::Vec3 = Vec3(
 
 *(s::Float64, v::Vec3)::Vec3 = Vec3(s .* v.data)
 
+-(v::Vec3) = Vec3(-v.data[1], -v.data[2], -v.data[3])
+
 struct UnitVec3
     data::Tuple{Float64,Float64,Float64}
 

@@ -192,43 +192,33 @@ struct Triangle
     vertex::Vec3
     edge1::Vec3
     edge2::Vec3
-    color::RGB
-    emit::RGB
-    reflection::Reflection
+end
+
+function det(a::Vec3, b::Vec3, c::Vec3)::Float64
+    return a.data[1] * b.data[2] * c.data[3] +
+           a.data[2] * b.data[3] * c.data[1] +
+           a.data[3] * b.data[1] * c.data[2] -
+           a.data[3] * b.data[2] * c.data[1] -
+           a.data[2] * b.data[1] * c.data[3] -
+           a.data[1] * b.data[3] * c.data[2]
 end
 
 function hit(triangle::Triangle, ray::Ray)::Union{HitRecord,Nothing}
-    pvec = cross(ray.direction, triangle.edge2)
-    det = dot(triangle.edge1, pvec)
+    d = det(triangle.edge1, triangle.edge2, -as_vec3(ray.direction))
 
-    if abs(det) < kEPS
+    s1 = det(ray.origin - triangle.vertex, triangle.edge2, -as_vec3(ray.direction)) / d
+    s2 = det(triangle.edge1, ray.origin - triangle.vertex, -as_vec3(ray.direction)) / d
+    t = det(triangle.edge1, triangle.edge2, ray.origin - triangle.vertex) / d
+
+    if s1 < kEPS || s2 < kEPS || s1 + s2 > 1.0
         return nothing
     end
-
-    invdet = 1 / det
-
-    tvec = ray.origin - triangle.vertex
-    u = dot(tvec, pvec) * invdet
-    if u < 0 || u > 1
+    if abs(t) < kEPS
         return nothing
     end
-
-    qvec = cross(tvec, triangle.edge1)
-    v = dot(ray.direction, qvec) * invdet
-    if v < 0 || u + v > 1
-        return nothing
-    end
-
-    t = dot(triangle.edge2, qvec) * invdet
-
-    if t < kEPS
-        return nothing
-    end
-
-    point = ray.origin + t * ray.direction
 
     return HitRecord(
-        point,
+        ray.origin + t * ray.direction,
         normalize(cross(triangle.edge1, triangle.edge2)),
         t,
     )
@@ -240,8 +230,8 @@ struct Mesh
     color::RGB
     emit::RGB
 
-    function Mesh(triangles::Vector{Triangle})
-        return new(triangles, diffuse, RGB(0, 0, 0), RGB(0, 0, 0))
+    function Mesh(triangles::Vector{Triangle}, color::RGB)
+        return new(triangles, diffuse, color, RGB(0, 0, 0))
     end
 
     function Mesh(faces::Vector{Vector{Vec3}}, color::RGB)
@@ -250,7 +240,7 @@ struct Mesh
             origin = face[1]
             prev = face[2]
             for current in face[3:end]
-                push!(triangles, Triangle(origin, prev - origin, current - origin, color, RGB(0, 0, 0), diffuse))
+                push!(triangles, Triangle(origin, prev - origin, current - origin))
                 prev = current
             end
         end
