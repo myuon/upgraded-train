@@ -39,7 +39,8 @@ function load_obj(filename::String)
         elseif keyword == "usemtl"
             object.material = String(tokens[2])
         elseif keyword == "f"
-            face_indices = [parse(Int, x) for x in tokens[2:end]]
+            values = [split(x, "/") for x in tokens[2:end]]
+            face_indices = [parse(Int, x[1]) for x in values]
             push!(object.faces, [vertices[index > 0 ? index : length(vertices) + 1 + index] for index in face_indices])
         end
     end
