@@ -176,8 +176,8 @@ function hit(rect::Rectangle, ray::Ray)::Union{HitRecord,Nothing}
     )
 end
 
-function sample_on(rect::Rectangle)::Vec3
-    return rect.vertex + rand() * rect.edge1 + rand() * rect.edge2
+function sample_on(rect::Rectangle)::Tuple{Vec3,UnitVec3}
+    return rect.vertex + rand() * rect.edge1 + rand() * rect.edge2, normalize(cross(rect.edge1, rect.edge2))
 end
 
 function is_light(rect::Rectangle)::Bool
@@ -234,7 +234,7 @@ struct Mesh
         return new(triangles, diffuse, color, RGB(0, 0, 0))
     end
 
-    function Mesh(faces::Vector{Vector{Vec3}}, color::RGB)
+    function Mesh(faces::Vector{Vector{Vec3}}, color::RGB, emission::RGB)
         triangles = Vector{Triangle}()
         for face in faces
             origin = face[1]
@@ -245,7 +245,7 @@ struct Mesh
             end
         end
 
-        return new(triangles, diffuse, color, RGB(0, 0, 0))
+        return new(triangles, diffuse, color, emission)
     end
 end
 
@@ -262,6 +262,24 @@ function hit(mesh::Mesh, ray::Ray)::Union{HitRecord,Nothing}
     end
 
     return hr
+end
+
+function is_light(mesh::Mesh)::Bool
+    return mesh.emit.r > 0 || mesh.emit.g > 0 || mesh.emit.b > 0
+end
+
+function sample_on(mesh::Mesh)::Tuple{Vec3,UnitVec3}
+    triangle = mesh.triangles[rand(1:length(mesh.triangles))]
+    return triangle.vertex + rand() * triangle.edge1 + rand() * triangle.edge2, normalize(cross(triangle.edge1, triangle.edge2))
+end
+
+function area_size(mesh::Mesh)::Float64
+    area = 0.0
+    for triangle in mesh.triangles
+        area += length(cross(triangle.edge1, triangle.edge2)) / 2.0
+    end
+
+    return area
 end
 
 export Sphere, Box, rotate_y, Rectangle, hit, is_light, sample_on, area_size, Triangle, Mesh

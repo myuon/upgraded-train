@@ -24,7 +24,8 @@ function main()
     for (name, object) in objects
         material = materials[name]
         color = RGB(material.Ka[1], material.Ka[2], material.Ka[3])
-        push!(meshes, Mesh(object.faces, color))
+        emission = RGB(material.Ke[1], material.Ke[2], material.Ke[3])
+        push!(meshes, Mesh(object.faces, color, emission))
     end
 
     scene = Scene(

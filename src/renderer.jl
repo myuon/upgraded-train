@@ -58,7 +58,7 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Spher
     return result
 end
 
-function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle},Vec3}
+function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle,Mesh},Tuple{Vec3,UnitVec3}}
     sample_count = 0
     for object in scene.objects
         if is_light(object)
@@ -67,6 +67,11 @@ function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle},Vec3}
     end
     for rectangle in scene.rectangles
         if is_light(rectangle)
+            sample_count += 1
+        end
+    end
+    for mesh in scene.meshes
+        if is_light(mesh)
             sample_count += 1
         end
     end
@@ -87,6 +92,14 @@ function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle},Vec3}
             sample_count += 1
             if sample_count == light_index
                 return rectangle, sample_on(rectangle)
+            end
+        end
+    end
+    for mesh in scene.meshes
+        if is_light(mesh)
+            sample_count += 1
+            if sample_count == light_index
+                return mesh, sample_on(mesh)
             end
         end
     end
@@ -125,12 +138,12 @@ function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool):
                         result.data[i, j] += object.emit * weight
                     end
                     if enable_NEE && object.reflection == diffuse
-                        light, lightp = sample_on_light(scene)
+                        light, (lightp, lightnormal) = sample_on_light(scene)
                         shadowray = Ray(ht.point, normalize(lightp - ht.point))
 
                         shr = hit_in_scene(scene, shadowray)
                         if !isnothing(shr) && length(shr[1].point - lightp) < kEPS
-                            G = abs(dot(normalize(cross(shr[2].edge1, shr[2].edge2)), shadowray.direction)) * abs(dot(shadowray.direction, ht.normal)) / length(lightp - ht.point)^2
+                            G = abs(dot(lightnormal, shadowray.direction)) * abs(dot(shadowray.direction, ht.normal)) / length(lightp - ht.point)^2
                             result.data[i, j] += light.emit * weight * object.color * area_size(light) * G
                         end
 
