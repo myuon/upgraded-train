@@ -194,6 +194,10 @@ struct Triangle
     edge2::Vec3
 end
 
+function vertices_triangle(triangle::Triangle)::Tuple{Vec3,Vec3,Vec3}
+    return triangle.vertex, triangle.vertex + triangle.edge1, triangle.vertex + triangle.edge2
+end
+
 function det(a::Vec3, b::Vec3, c::Vec3)::Float64
     return a.data[1] * b.data[2] * c.data[3] +
            a.data[2] * b.data[3] * c.data[1] +
@@ -224,14 +228,89 @@ function hit(triangle::Triangle, ray::Ray)::Union{HitRecord,Nothing}
     )
 end
 
+function center(triangle::Triangle)::Vec3
+    return triangle.vertex + 0.5 * triangle.edge1 + 0.5 * triangle.edge2
+end
+
+struct AABB
+    minv::Vec3
+    maxv::Vec3
+
+    function AABB(min::Vec3, max::Vec3)
+        return new(min, max)
+    end
+
+    function AABB(triangles::Vector{Triangle})
+        minv = triangles[1].vertex
+        maxv = triangles[1].vertex
+        for triangle in triangles
+            for v in vertices_triangle(triangle)
+                minv = min(minv, v)
+                maxv = max(maxv, v)
+            end
+        end
+
+        return new(minv, maxv)
+    end
+end
+
+function hit_if(aabb::AABB, ray::Ray)::Bool
+    tmin = (aabb.minv.data[1] - ray.origin.data[1]) / ray.direction.data[1]
+    tmax = (aabb.maxv.data[1] - ray.origin.data[1]) / ray.direction.data[1]
+
+    if tmin > tmax
+        tmin, tmax = tmax, tmin
+    end
+
+    tymin = (aabb.minv.data[2] - ray.origin.data[2]) / ray.direction.data[2]
+    tymax = (aabb.maxv.data[2] - ray.origin.data[2]) / ray.direction.data[2]
+
+    if tymin > tymax
+        tymin, tymax = tymax, tymin
+    end
+
+    if (tmin > tymax) || (tymin > tmax)
+        return false
+    end
+
+    if tymin > tmin
+        tmin = tymin
+    end
+
+    if tymax < tmax
+        tmax = tymax
+    end
+
+    tzmin = (aabb.minv.data[3] - ray.origin.data[3]) / ray.direction.data[3]
+    tzmax = (aabb.maxv.data[3] - ray.origin.data[3]) / ray.direction.data[3]
+
+    if tzmin > tzmax
+        tzmin, tzmax = tzmax, tzmin
+    end
+
+    if (tmin > tzmax) || (tzmin > tmax)
+        return false
+    end
+
+    return true
+end
+
+function merge(a::AABB, b::AABB)::AABB
+    return AABB(
+        Vec3(min(a.min.data[1], b.min.data[1]), min(a.min.data[2], b.min.data[2]), min(a.min.data[3], b.min.data[3])),
+        Vec3(max(a.max.data[1], b.max.data[1]), max(a.max.data[2], b.max.data[2]), max(a.max.data[3], b.max.data[3])),
+    )
+end
+
 struct Mesh
     triangles::Vector{Triangle}
+    bbox::AABB
     color::RGB
     emit::RGB
     reflection::Reflection
 
     function Mesh(triangles::Vector{Triangle}, color::RGB)
-        return new(triangles, diffuse, color, RGB(0, 0, 0))
+        return new(triangles, AABB(triangles), diffuse, color, RGB(0, 0, 0))
     end
 
     function Mesh(faces::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection)
@@ -245,11 +324,15 @@ struct Mesh
             end
         end
 
-        return new(triangles, color, emission, reflection)
+        return new(triangles, AABB(triangles), color, emission, reflection)
     end
 end
 
 function hit(mesh::Mesh, ray::Ray)::Union{HitRecord,Nothing}
+    if !hit_if(mesh.bbox, ray)
+        return nothing
+    end
+
     distance = Inf
     hr = nothing
 
@@ -282,6 +365,6 @@ function area_size(mesh::Mesh)::Float64
     return area
 end
 
-export Sphere, Box, rotate_y, Rectangle, hit, is_light, sample_on, area_size, Triangle, Mesh
+export Sphere, Box, rotate_y, Rectangle, hit, is_light, sample_on, area_size, Triangle, Mesh, vertices_triangle, center
 
 end

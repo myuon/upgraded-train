@@ -4,6 +4,7 @@ include("src/loader.jl")
 include("src/ray.jl")
 include("src/shape.jl")
 include("src/renderer.jl")
+include("src/bvh.jl")
 
 using .Vectors
 using .Images
