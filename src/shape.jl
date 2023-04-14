@@ -247,6 +247,9 @@ end
 
 function hit(triangle::NormalTriangle, ray::Ray)::Union{HitRecord,Nothing}
     d = det(triangle.edge1, triangle.edge2, -as_vec3(ray.direction))
+    if d < kEPS
+        return nothing
+    end
 
     s1 = det(ray.origin - triangle.vertex, triangle.edge2, -as_vec3(ray.direction)) / d
     s2 = det(triangle.edge1, ray.origin - triangle.vertex, -as_vec3(ray.direction)) / d
