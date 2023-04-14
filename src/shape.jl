@@ -261,7 +261,7 @@ function hit(triangle::NormalTriangle, ray::Ray)::Union{HitRecord,Nothing}
 
     return HitRecord(
         ray.origin + t * ray.direction,
-        normalize(cross(triangle.edge1, triangle.edge2)),
+        normalize(s1 * triangle.vn1 + s2 * triangle.vn2 + (1 - s1 - s2) * triangle.vn0),
         t,
     )
 end

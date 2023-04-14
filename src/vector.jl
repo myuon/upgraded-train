@@ -51,9 +51,7 @@ struct UnitVec3
     data::Tuple{Float64,Float64,Float64}
 
     function UnitVec3(x::Float64, y::Float64, z::Float64)
-        @assert sqrt(x^2 + y^2 + z^2) - 1 < 1e-6
-
-        new((x, y, z))
+        new((x, y, z) ./ length(Vec3(x, y, z)))
     end
 
     function UnitVec3(vec::Vec3)

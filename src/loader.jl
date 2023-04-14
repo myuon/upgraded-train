@@ -38,7 +38,7 @@ function load_obj(filename::String)
             end
         elseif keyword == "v"
             push!(vertices, Vectors.Vec3(parse(Float64, tokens[2]), parse(Float64, tokens[3]), parse(Float64, tokens[4])))
-        elseif keyword == "vt"
+        elseif keyword == "vn"
             push!(normals, Vectors.Vec3(parse(Float64, tokens[2]), parse(Float64, tokens[3]), parse(Float64, tokens[4])))
         elseif keyword == "usemtl"
             object.material = String(tokens[2])
