@@ -39,7 +39,7 @@ function main()
         else
             reflection = diffuse
         end
-        push!(meshes, Mesh(object.faces, color, emission, reflection))
+        push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection))
     end
 
     scene = Scene(
