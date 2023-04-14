@@ -108,7 +108,13 @@ end
 const russian_roulette_min = 5
 const russian_roulette_max = 10
 
-function render(scene::Scene, size::Tuple{Int,Int}, spp::Int, enable_NEE::Bool)::Image
+function render(
+    scene::Scene,
+    size::Tuple{Int,Int},
+    spp::Int,
+    enable_NEE::Bool,
+    enable_DEBUG_NORMAL_SIMILARITY::Bool,
+)::Image
     result = Image(size)
 
     screenx = normalize(cross(scene.camera.direction, scene.camera.up)) * Float64(scene.screensize)

@@ -384,7 +384,17 @@ struct Mesh
             for j in 3:length(face)
                 current = face[j]
                 currentn = ns[j]
-                push!(triangles, NormalTriangle(origin, normalize(on), prev - origin, normalize(prevn - on), current - origin, normalize(currentn - on)))
+                push!(
+                    triangles,
+                    NormalTriangle(
+                        origin,
+                        normalize(on),
+                        prev - origin,
+                        normalize(prevn),
+                        current - origin,
+                        normalize(currentn),
+                    )
+                )
                 prev = current
             end
         end

@@ -19,7 +19,13 @@ struct Vec3
     end
 end
 
-as_vector(v::Vec3)::Vector{Float64} = v.data
+as_vector(v::Vec3)::Tuple{Float64,Float64,Float64} = v.data
+
+x(v::Vec3)::Float64 = v.data[1]
+
+y(v::Vec3)::Float64 = v.data[2]
+
+z(v::Vec3)::Float64 = v.data[3]
 
 length(v::Vec3)::Float64 = sqrt(sum(v.data .^ 2))
 
@@ -51,17 +57,25 @@ struct UnitVec3
     data::Tuple{Float64,Float64,Float64}
 
     function UnitVec3(x::Float64, y::Float64, z::Float64)
-        new((x, y, z) ./ length(Vec3(x, y, z)))
+        @assert x^2 + y^2 + z^2 ≈ 1
+
+        new((x, y, z))
     end
 
     function UnitVec3(vec::Vec3)
-        new(vec.data ./ length(vec))
+        @assert length(vec) ≈ 1
+
+        new(vec.data)
     end
 end
 
-as_vector(v::UnitVec3)::Vector{Float64} = v.data
-
 as_vec3(v::UnitVec3)::Vec3 = Vec3(v.data)
+
+x(v::UnitVec3)::Float64 = v.data[1]
+
+y(v::UnitVec3)::Float64 = v.data[2]
+
+z(v::UnitVec3)::Float64 = v.data[3]
 
 normalize(v::UnitVec3)::UnitVec3 = v
 
@@ -87,6 +101,6 @@ cross(v1::Vec3, v2::UnitVec3)::Vec3 = cross(v1, as_vec3(v2))
 
 -(a::UnitVec3) = UnitVec3(-a.data[1], -a.data[2], -a.data[3])
 
-export Vec3, UnitVec3, length, as_vector, as_vec3, length, normalize, dot, cross
+export Vec3, UnitVec3, length, as_vector, as_vec3, length, normalize, dot, cross, x, y, z
 
 end
