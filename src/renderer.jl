@@ -16,9 +16,6 @@ end
 struct Scene
     camera::Camera
     screensize::Int
-    objects::Vector{Sphere}
-    rectangles::Vector{Rectangle}
-    boxes::Vector{Box}
     meshes::Vector{Mesh}
 end
 
@@ -26,27 +23,6 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Spher
     distance = Inf
     result = nothing
 
-    for object in scene.objects
-        hr = hit(object, ray)
-        if !isnothing(hr) && hr.distance < distance
-            result = hr, object
-            distance = hr.distance
-        end
-    end
-    for rectangle in scene.rectangles
-        hr = hit(rectangle, ray)
-        if !isnothing(hr) && hr.distance < distance
-            result = hr, rectangle
-            distance = hr.distance
-        end
-    end
-    for box in scene.boxes
-        hr = hit(box, ray)
-        if !isnothing(hr) && hr.distance < distance
-            result = hr, box
-            distance = hr.distance
-        end
-    end
     for mesh in scene.meshes
         hr = hit(mesh, ray)
         if !isnothing(hr) && hr.distance < distance
@@ -60,16 +36,6 @@ end
 
 function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle,Mesh},Tuple{Vec3,UnitVec3}}
     sample_count = 0
-    for object in scene.objects
-        if is_light(object)
-            sample_count += 1
-        end
-    end
-    for rectangle in scene.rectangles
-        if is_light(rectangle)
-            sample_count += 1
-        end
-    end
     for mesh in scene.meshes
         if is_light(mesh)
             sample_count += 1
@@ -79,22 +45,6 @@ function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle,Mesh},Tuple
     light_index = rand(1:sample_count)
 
     sample_count = 0
-    for object in scene.objects
-        if is_light(object)
-            sample_count += 1
-            if sample_count == light_index
-                return object, sample_on(object)
-            end
-        end
-    end
-    for rectangle in scene.rectangles
-        if is_light(rectangle)
-            sample_count += 1
-            if sample_count == light_index
-                return rectangle, sample_on(rectangle)
-            end
-        end
-    end
     for mesh in scene.meshes
         if is_light(mesh)
             sample_count += 1
