@@ -57,9 +57,7 @@ struct UnitVec3
     end
 
     function UnitVec3(vec::Vec3)
-        @assert length(vec) - 1 < 1e-6
-
-        new(vec.data)
+        new(vec.data ./ length(vec))
     end
 end
 

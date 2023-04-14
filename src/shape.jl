@@ -228,8 +228,42 @@ function hit(triangle::Triangle, ray::Ray)::Union{HitRecord,Nothing}
     )
 end
 
+struct NormalTriangle
+    vertex::Vec3
+    vn0::UnitVec3
+    edge1::Vec3
+    vn1::UnitVec3
+    edge2::Vec3
+    vn2::UnitVec3
+end
+
+function vertices_triangle(triangle::NormalTriangle)::Tuple{Vec3,Vec3,Vec3}
+    return triangle.vertex, triangle.vertex + triangle.edge1, triangle.vertex + triangle.edge2
+end
+
 function center(triangle::Triangle)::Vec3
     return triangle.vertex + 0.5 * triangle.edge1 + 0.5 * triangle.edge2
+end
+
+function hit(triangle::NormalTriangle, ray::Ray)::Union{HitRecord,Nothing}
+    d = det(triangle.edge1, triangle.edge2, -as_vec3(ray.direction))
+
+    s1 = det(ray.origin - triangle.vertex, triangle.edge2, -as_vec3(ray.direction)) / d
+    s2 = det(triangle.edge1, ray.origin - triangle.vertex, -as_vec3(ray.direction)) / d
+    t = det(triangle.edge1, triangle.edge2, ray.origin - triangle.vertex) / d
+
+    if s1 < kEPS || s2 < kEPS || s1 + s2 > 1.0
+        return nothing
+    end
+    if abs(t) < kEPS
+        return nothing
+    end
+
+    return HitRecord(
+        ray.origin + t * ray.direction,
+        normalize(cross(triangle.edge1, triangle.edge2)),
+        t,
+    )
 end
 
 struct AABB
@@ -241,6 +275,19 @@ struct AABB
     end
 
     function AABB(triangles::Vector{Triangle})
+        minv = triangles[1].vertex
+        maxv = triangles[1].vertex
+        for triangle in triangles
+            for v in vertices_triangle(triangle)
+                minv = min(minv, v)
+                maxv = max(maxv, v)
+            end
+        end
+
+        return new(minv, maxv)
+    end
+
+    function AABB(triangles::Vector{NormalTriangle})
         minv = triangles[1].vertex
         maxv = triangles[1].vertex
         for triangle in triangles
@@ -303,14 +350,15 @@ function merge(a::AABB, b::AABB)::AABB
 end
 
 struct Mesh
+    hasnormal::Bool
     triangles::Vector{Triangle}
-    normals::Vector{Vector{Vec3}}
+    ntriangles::Vector{NormalTriangle}
     bbox::AABB
     color::RGB
     emit::RGB
     reflection::Reflection
 
-    function Mesh(faces::Vector{Vector{Vec3}}, normals::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection)
+    function Mesh(faces::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection)
         triangles = Vector{Triangle}()
         for face in faces
             origin = face[1]
@@ -321,7 +369,27 @@ struct Mesh
             end
         end
 
-        return new(triangles, normals, AABB(triangles), color, emission, reflection)
+        return new(false, triangles, [], normals, AABB(triangles), color, emission, reflection)
+    end
+
+    function Mesh(faces::Vector{Vector{Vec3}}, normals::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection)
+        triangles = Vector{NormalTriangle}()
+        for i in 1:length(faces)
+            face = faces[i]
+            ns = normals[i]
+            origin = face[1]
+            on = ns[1]
+            prev = face[2]
+            prevn = ns[2]
+            for j in 3:length(face)
+                current = face[j]
+                currentn = ns[j]
+                push!(triangles, NormalTriangle(origin, normalize(on), prev - origin, normalize(prevn - on), current - origin, normalize(currentn - on)))
+                prev = current
+            end
+        end
+
+        return new(true, [], triangles, AABB(triangles), color, emission, reflection)
     end
 end
 
@@ -333,11 +401,21 @@ function hit(mesh::Mesh, ray::Ray)::Union{HitRecord,Nothing}
     distance = Inf
     hr = nothing
 
-    for triangle in mesh.triangles
-        h = hit(triangle, ray)
-        if !isnothing(h) && h.distance < distance
-            distance = h.distance
-            hr = h
+    if mesh.hasnormal
+        for triangle in mesh.ntriangles
+            h = hit(triangle, ray)
+            if !isnothing(h) && h.distance < distance
+                distance = h.distance
+                hr = h
+            end
+        end
+    else
+        for triangle in mesh.triangles
+            h = hit(triangle, ray)
+            if !isnothing(h) && h.distance < distance
+                distance = h.distance
+                hr = h
+            end
         end
     end
 
@@ -349,19 +427,29 @@ function is_light(mesh::Mesh)::Bool
 end
 
 function sample_on(mesh::Mesh)::Tuple{Vec3,UnitVec3}
-    triangle = mesh.triangles[rand(1:length(mesh.triangles))]
+    if mesh.hasnormal
+        triangle = mesh.ntriangles[rand(1:length(mesh.ntriangles))]
+    else
+        triangle = mesh.triangles[rand(1:length(mesh.triangles))]
+    end
     return triangle.vertex + rand() * triangle.edge1 + rand() * triangle.edge2, normalize(cross(triangle.edge1, triangle.edge2))
 end
 
 function area_size(mesh::Mesh)::Float64
     area = 0.0
-    for triangle in mesh.triangles
-        area += length(cross(triangle.edge1, triangle.edge2)) / 2.0
+    if mesh.hasnormal
+        for triangle in mesh.ntriangles
+            area += length(cross(triangle.edge1, triangle.edge2)) / 2.0
+        end
+    else
+        for triangle in mesh.triangles
+            area += length(cross(triangle.edge1, triangle.edge2)) / 2.0
+        end
     end
 
     return area
 end
 
-export Sphere, Box, rotate_y, Rectangle, hit, is_light, sample_on, area_size, Triangle, Mesh, vertices_triangle, center
+export Sphere, Box, rotate_y, Rectangle, hit, is_light, sample_on, area_size, Triangle, Mesh, vertices_triangle, center, NormalTriangle, NormalMesh
 
 end
