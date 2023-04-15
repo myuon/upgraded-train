@@ -52,6 +52,10 @@ function to_color_value(value::Float64, gamma::Float64, brightness::Float64, ena
     end
     value = max(min(value, 1.0), 0.0)^(1.0 / gamma)
 
+    if isnan(value)
+        return 0
+    end
+
     return round(Int, value * 255)
 end
 

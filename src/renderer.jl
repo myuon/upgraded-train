@@ -19,7 +19,7 @@ struct Scene
     meshes::Vector{Mesh}
 end
 
-function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Sphere,Rectangle,Box,Mesh}},Nothing}
+function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Mesh},Nothing}
     distance = Inf
     result = nothing
 
@@ -34,7 +34,7 @@ function hit_in_scene(scene::Scene, ray::Ray)::Union{Tuple{HitRecord,Union{Spher
     return result
 end
 
-function sample_on_light(scene::Scene)::Tuple{Union{Sphere,Rectangle,Mesh},Tuple{Vec3,UnitVec3}}
+function sample_on_light(scene::Scene)::Tuple{Mesh,Tuple{Vec3,UnitVec3}}
     sample_count = 0
     for mesh in scene.meshes
         if is_light(mesh)
@@ -98,6 +98,9 @@ function render(
                     if !enable_NEE || !prev_nee_contributed
                         result.data[i, j] += object.emit * weight
                     end
+                    if count >= 3
+                        break
+                    end
                     if enable_NEE && object.reflection == diffuse
                         light, (lightp, lightnormal) = sample_on_light(scene)
                         shadowray = Ray(ht.point, normalize(lightp - ht.point))
@@ -113,14 +116,14 @@ function render(
                         prev_nee_contributed = false
                     end
 
-                    russian_roulette = max(object.color.r, object.color.g, object.color.b)
+                    russian_roulette = 0.75
 
                     if count > russian_roulette_max
                         russian_roulette *= 0.5
                     end
                     if count < russian_roulette_min
                         russian_roulette = 1.0
-                    elseif rand() < russian_roulette || russian_roulette < kEPS
+                    elseif rand() < russian_roulette
                         break
                     end
 

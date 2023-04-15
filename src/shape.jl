@@ -245,6 +245,10 @@ function center(triangle::NormalTriangle)::Vec3
     return triangle.vertex + 0.5 * triangle.edge1 + 0.5 * triangle.edge2
 end
 
+function normalat(triangle::NormalTriangle, s1::Float64, s2::Float64)::UnitVec3
+    return normalize(s1 * triangle.vn1 + s2 * triangle.vn2 + (1 - s1 - s2) * triangle.vn0)
+end
+
 function hit(triangle::NormalTriangle, ray::Ray)::Union{HitRecord,Nothing}
     d = det(triangle.edge1, triangle.edge2, -as_vec3(ray.direction))
     if d < kEPS
@@ -264,7 +268,7 @@ function hit(triangle::NormalTriangle, ray::Ray)::Union{HitRecord,Nothing}
 
     return HitRecord(
         ray.origin + t * ray.direction,
-        normalize(s1 * triangle.vn1 + s2 * triangle.vn2 + (1 - s1 - s2) * triangle.vn0),
+        normalat(triangle, s1, s2),
         t,
     )
 end
@@ -385,7 +389,8 @@ struct Mesh
             on = ns[1]
             prev = face[2]
             prevn = ns[2]
-            for j in 3:length(face)
+            fn = length(face)
+            for j in 3:fn
                 current = face[j]
                 currentn = ns[j]
                 push!(
@@ -400,6 +405,7 @@ struct Mesh
                     )
                 )
                 prev = current
+                prevn = currentn
             end
         end
 
@@ -415,21 +421,11 @@ function hit(mesh::Mesh, ray::Ray)::Union{HitRecord,Nothing}
     distance = Inf
     hr = nothing
 
-    if mesh.hasnormal
-        for triangle in mesh.ntriangles
-            h = hit(triangle, ray)
-            if !isnothing(h) && h.distance < distance
-                distance = h.distance
-                hr = h
-            end
-        end
-    else
-        for triangle in mesh.triangles
-            h = hit(triangle, ray)
-            if !isnothing(h) && h.distance < distance
-                distance = h.distance
-                hr = h
-            end
+    for triangle in (mesh.hasnormal ? mesh.ntriangles : mesh.triangles)
+        h = hit(triangle, ray)
+        if !isnothing(h) && h.distance < distance
+            distance = h.distance
+            hr = h
         end
     end
 
@@ -441,12 +437,12 @@ function is_light(mesh::Mesh)::Bool
 end
 
 function sample_on(mesh::Mesh)::Tuple{Vec3,UnitVec3}
-    if mesh.hasnormal
-        triangle = mesh.ntriangles[rand(1:length(mesh.ntriangles))]
-    else
-        triangle = mesh.triangles[rand(1:length(mesh.triangles))]
-    end
-    return triangle.vertex + rand() * triangle.edge1 + rand() * triangle.edge2, normalize(cross(triangle.edge1, triangle.edge2))
+    triangle = (mesh.hasnormal ? mesh.ntriangles : mesh.triangles)[rand(1:length(mesh.ntriangles))]
+    s1 = rand()
+    s2 = rand()
+    normal = mesh.hasnormal ? normalat(triangle, s1, s2) : normalize(cross(triangle.edge1, triangle.edge2))
+
+    return triangle.vertex + s1 * triangle.edge1 + s2 * triangle.edge2, normal
 end
 
 function area_size(mesh::Mesh)::Float64
@@ -460,6 +456,8 @@ function area_size(mesh::Mesh)::Float64
             area += length(cross(triangle.edge1, triangle.edge2)) / 2.0
         end
     end
+
+    @assert area > 0.0
 
     return area
 end
