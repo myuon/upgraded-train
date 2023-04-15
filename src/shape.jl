@@ -372,7 +372,7 @@ struct Mesh
             end
         end
 
-        return new(false, triangles, [], normals, AABB(triangles), color, emission, reflection)
+        return new(false, triangles, [], AABB(triangles), color, emission, reflection)
     end
 
     function Mesh(faces::Vector{Vector{Vec3}}, normals::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection)

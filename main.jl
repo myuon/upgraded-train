@@ -40,7 +40,16 @@ function main()
         else
             reflection = diffuse
         end
-        push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection))
+
+        if length(object.faces) == 0
+            continue
+        end
+
+        if length(object.normals) > 0
+            push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection))
+        else
+            push!(meshes, Mesh(object.faces, color, emission, reflection))
+        end
     end
 
     scene = Scene(
