@@ -46,8 +46,10 @@ function main()
             elseif bsdf.type == "dielectric"
                 reflection = refractive
                 ni = bsdf.ior
+                color = RGB(1.0, 1.0, 1.0)
             elseif bsdf.type == "roughconductor"
                 reflection = specular
+                color = RGB(bsdf.specular_reflectance[1], bsdf.specular_reflectance[2], bsdf.specular_reflectance[3])
             end
 
             if length(object.normals) > 0 && !disable_SHADING_NORMAL
@@ -56,6 +58,13 @@ function main()
                 push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
             end
         end
+
+        camera = Camera(
+            Vec3(16.2155, 4.05167, 0.0114864),
+            normalize(Vec3(0.0, 0.999989, -0.00467011)),
+            -normalize(Vec3(0.999987, -2.34659e-5, -0.00502464)),
+            7,
+        )
     elseif OBJ_FILE != ""
         objects, materials = load_obj(OBJ_FILE)
 
@@ -90,16 +99,18 @@ function main()
                 push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
             end
         end
-    end
 
-    scene = Scene(
-        Camera(
+        camera = Camera(
             Vec3(0.0, 1.0, 5.0),
             normalize(Vec3(0.0, 1.0, 0.0)),
             normalize(Vec3(0.0, 0.0, -1.0)),
             4,
-        ),
-        2.8,
+        )
+    end
+
+    scene = Scene(
+        camera,
+        7.0,
         meshes,
     )
 
