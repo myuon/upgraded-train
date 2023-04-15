@@ -9,6 +9,8 @@ struct Shape
     bsdfid::String
     radiance::Tuple{Float64,Float64,Float64}
     matrix::Array{Float64}
+    spherecenter::Tuple{Float64,Float64,Float64}
+    sphereradius::Float64
 end
 
 struct Bsdf
@@ -28,23 +30,39 @@ function load_scene(filename::String)
     bsdfs = Dict{String,Bsdf}()
 
     for element in eachelement(scene.root)
-        if element.name == "shape" && element["type"] == "obj"
-            name = element["id"]
-            shapes[name] = Shape(name, "object", find(element, "string")["value"], find(element, "ref")["id"], (0.0, 0.0, 0.0), [])
-        elseif element.name == "shape" && element["type"] == "rectangle"
-            name = element["id"]
+        if element.name == "shape"
 
-            matrix_str = find(findbyname(element, "transform", "to_world"), "matrix")["value"]
-            matrix = [parse(Float64, x) for x in split(matrix_str, " ")]
+            emitter = find(element, "emitter")
+            if !isnothing(emitter)
+                radiance_str = findbyname(emitter, "rgb", "radiance")
+                radiance_array = [parse(Float64, x) for x in split(radiance_str["value"], ",")]
+                radiance = (radiance_array[1], radiance_array[2], radiance_array[3])
+            else
+                radiance = (0.0, 0.0, 0.0)
+            end
 
-            radiance_str = findbyname(find(element, "emitter"), "rgb", "radiance")
-            radiance_array = [parse(Float64, x) for x in split(radiance_str["value"], ",")]
-            radiance = (radiance_array[1], radiance_array[2], radiance_array[3])
+            if element["type"] == "obj"
+                name = element["id"]
+                shapes[name] = Shape(name, "object", find(element, "string")["value"], find(element, "ref")["id"], (0.0, 0.0, 0.0), [], (0.0, 0.0, 0.0), 0.0)
+            elseif element["type"] == "rectangle"
+                name = element["id"]
 
-            shapes[name] = Shape(name, "rectangle", "", find(element, "ref")["id"], radiance, matrix)
-        end
+                matrix_str = find(findbyname(element, "transform", "to_world"), "matrix")["value"]
+                matrix = [parse(Float64, x) for x in split(matrix_str, " ")]
 
-        if element.name == "bsdf"
+                shapes[name] = Shape(name, "rectangle", "", find(element, "ref")["id"], radiance, matrix, (0.0, 0.0, 0.0), 0.0)
+            elseif element["type"] == "sphere"
+                name = element["id"]
+
+                centerx = parse(Float64, findbyname(element, "point", "center")["x"])
+                centery = parse(Float64, findbyname(element, "point", "center")["y"])
+                centerz = parse(Float64, findbyname(element, "point", "center")["z"])
+
+                radius = parse(Float64, findbyname(element, "float", "radius")["value"])
+
+                shapes[name] = Shape(name, "sphere", "", find(element, "ref")["id"], radiance, [], (centerx, centery, centerz), radius)
+            end
+        elseif element.name == "bsdf"
             b = bsdf(element, "")
             bsdfs[b.id] = b
         end
