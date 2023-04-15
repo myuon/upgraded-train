@@ -16,7 +16,8 @@ using .Rays
 const spp = parse(Int, get(ENV, "SPP", "4"))
 const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
 const enable_TONE_MAP = get(ENV, "ENABLE_TONE_MAP", "true") == "true"
-const enable_DEBUG_NORMAL_SIMILARITY = get(ENV, "ENABLE_DEBUG_NORMAL_SIMILARITY", "false") == "true"
+const enable_DEBUG_HIT_NORMAL = get(ENV, "ENABLE_DEBUG_HIT_NORMAL", "false") == "true"
+const disable_SHADING_NORMAL = get(ENV, "DISABLE_SHADING_NORMAL", "false") == "true"
 const OBJ_FILE = get(ENV, "OBJ_FILE", "assets/test.obj")
 
 function main()
@@ -47,7 +48,7 @@ function main()
             continue
         end
 
-        if length(object.normals) > 0
+        if length(object.normals) > 0 && !disable_SHADING_NORMAL
             push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection, ni))
         else
             push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
@@ -65,7 +66,7 @@ function main()
         meshes,
     )
 
-    result = render(scene, (640, 480), spp, enable_NEE, enable_DEBUG_NORMAL_SIMILARITY)
+    result = render(scene, (640, 480), spp, enable_NEE, enable_DEBUG_HIT_NORMAL)
 
     save("output", result, 2.2, enable_TONE_MAP)
 end

@@ -241,7 +241,7 @@ function vertices_triangle(triangle::NormalTriangle)::Tuple{Vec3,Vec3,Vec3}
     return triangle.vertex, triangle.vertex + triangle.edge1, triangle.vertex + triangle.edge2
 end
 
-function center(triangle::Triangle)::Vec3
+function center(triangle::NormalTriangle)::Vec3
     return triangle.vertex + 0.5 * triangle.edge1 + 0.5 * triangle.edge2
 end
 

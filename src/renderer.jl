@@ -63,7 +63,7 @@ function render(
     size::Tuple{Int,Int},
     spp::Int,
     enable_NEE::Bool,
-    enable_DEBUG_NORMAL_SIMILARITY::Bool,
+    enable_DEBUG_HIT_NORMAL::Bool,
 )::Image
     result = Image(size)
 
@@ -89,6 +89,11 @@ function render(
                     count += 1
                     ht, object = hr
                     orientnormal = dot(ht.normal, ray.direction) < 0 ? ht.normal : -ht.normal
+
+                    if enable_DEBUG_HIT_NORMAL
+                        result.data[i, j] += RGB((x(ht.normal) + 1.0) / 2.0, (y(ht.normal) + 1.0) / 2.0, (z(ht.normal) + 1.0) / 2.0)
+                        break
+                    end
 
                     if !enable_NEE || !prev_nee_contributed
                         result.data[i, j] += object.emit * weight
