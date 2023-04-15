@@ -103,7 +103,7 @@ function render(
                         shadowray = Ray(ht.point, normalize(lightp - ht.point))
 
                         shr = hit_in_scene(scene, shadowray)
-                        if !isnothing(shr) && length(shr[1].point - lightp) < kEPS
+                        if dot(orientnormal, lightp - ht.point) > 0 && !isnothing(shr) && length(shr[1].point - lightp) < kEPS
                             G = abs(dot(lightnormal, shadowray.direction)) * abs(dot(shadowray.direction, ht.normal)) / length(lightp - ht.point)^2
                             result.data[i, j] += light.emit * weight * object.color * area_size(light) * G
                         end

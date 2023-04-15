@@ -50,7 +50,7 @@ function main()
                     color = RGB(1.0, 1.0, 1.0)
                 elseif bsdf.type == "roughconductor"
                     reflection = specular
-                    color = RGB(bsdf.specular_reflectance[1], bsdf.specular_reflectance[2], bsdf.specular_reflectance[3])
+                    color = RGB(1.0, 1.0, 1.0)
                 end
 
                 if length(object.normals) > 0 && !disable_SHADING_NORMAL
@@ -59,7 +59,31 @@ function main()
                     push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
                 end
             elseif shape.type == "rectangle"
-                @show shape
+                m = shape.matrix
+                bsdf = bsdfs[shape.bsdfid]
+
+                color = RGB(1.0, 1.0, 1.0)
+                emission = RGB(shape.radiance[1], shape.radiance[2], shape.radiance[3])
+                ni = 1.0
+
+                if bsdf.type == "diffuse"
+                    reflection = diffuse
+                elseif bsdf.type == "dielectric"
+                    reflection = refractive
+                    ni = bsdf.ior
+                elseif bsdf.type == "roughconductor"
+                    reflection = specular
+                end
+
+                push!(meshes, Mesh(
+                    [[
+                        Vec3(-m[1] - m[2] + m[4], -m[5] - m[6] + m[8], -m[9] - m[10] + m[12]),
+                        Vec3(m[1] - m[2] + m[4], m[5] - m[6] + m[8], m[9] - m[10] + m[12]),
+                        Vec3(m[1] + m[2] + m[4], m[5] + m[6] + m[8], m[9] + m[10] + m[12]),
+                        Vec3(-m[1] + m[2] + m[4], -m[5] + m[6] + m[8], -m[9] + m[10] + m[12]),
+                    ]],
+                    color, emission, reflection, ni)
+                )
             end
         end
 
