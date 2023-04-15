@@ -4,8 +4,11 @@ using EzXML
 
 struct Shape
     id::String
+    type::String
     objfile::String
     bsdfid::String
+    radiance::Tuple{Float64,Float64,Float64}
+    matrix::Array{Float64}
 end
 
 struct Bsdf
@@ -27,7 +30,18 @@ function load_scene(filename::String)
     for element in eachelement(scene.root)
         if element.name == "shape" && element["type"] == "obj"
             name = element["id"]
-            shapes[name] = Shape(name, find(element, "string")["value"], find(element, "ref")["id"])
+            shapes[name] = Shape(name, "object", find(element, "string")["value"], find(element, "ref")["id"], (0.0, 0.0, 0.0), [])
+        elseif element.name == "shape" && element["type"] == "rectangle"
+            name = element["id"]
+
+            matrix_str = find(findbyname(element, "transform", "to_world"), "matrix")["value"]
+            matrix = [parse(Float64, x) for x in split(matrix_str, " ")]
+
+            radiance_str = findbyname(find(element, "emitter"), "rgb", "radiance")
+            radiance_array = [parse(Float64, x) for x in split(radiance_str["value"], ",")]
+            radiance = (radiance_array[1], radiance_array[2], radiance_array[3])
+
+            shapes[name] = Shape(name, "rectangle", "", find(element, "ref")["id"], radiance, matrix)
         end
 
         if element.name == "bsdf"

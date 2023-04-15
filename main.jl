@@ -33,29 +33,33 @@ function main()
 
         meshes = Mesh[]
         for (_, shape) in shapes
-            objects, _ = load_obj(change_base_path(MITSU_FILE, shape.objfile))
-            object = objects[""]
-            bsdf = bsdfs[shape.bsdfid]
+            if shape.type == "object"
+                objects, _ = load_obj(change_base_path(MITSU_FILE, shape.objfile))
+                object = objects[""]
+                bsdf = bsdfs[shape.bsdfid]
 
-            color = RGB(bsdf.reflectance[1], bsdf.reflectance[2], bsdf.reflectance[3])
-            emission = RGB(bsdf.k[1], bsdf.k[2], bsdf.k[3])
-            ni = 1.0
+                color = RGB(bsdf.reflectance[1], bsdf.reflectance[2], bsdf.reflectance[3])
+                emission = RGB(bsdf.k[1], bsdf.k[2], bsdf.k[3])
+                ni = 1.0
 
-            if bsdf.type == "diffuse"
-                reflection = diffuse
-            elseif bsdf.type == "dielectric"
-                reflection = refractive
-                ni = bsdf.ior
-                color = RGB(1.0, 1.0, 1.0)
-            elseif bsdf.type == "roughconductor"
-                reflection = specular
-                color = RGB(bsdf.specular_reflectance[1], bsdf.specular_reflectance[2], bsdf.specular_reflectance[3])
-            end
+                if bsdf.type == "diffuse"
+                    reflection = diffuse
+                elseif bsdf.type == "dielectric"
+                    reflection = refractive
+                    ni = bsdf.ior
+                    color = RGB(1.0, 1.0, 1.0)
+                elseif bsdf.type == "roughconductor"
+                    reflection = specular
+                    color = RGB(bsdf.specular_reflectance[1], bsdf.specular_reflectance[2], bsdf.specular_reflectance[3])
+                end
 
-            if length(object.normals) > 0 && !disable_SHADING_NORMAL
-                push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection, ni))
-            else
-                push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
+                if length(object.normals) > 0 && !disable_SHADING_NORMAL
+                    push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection, ni))
+                else
+                    push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
+                end
+            elseif shape.type == "rectangle"
+                @show shape
             end
         end
 
