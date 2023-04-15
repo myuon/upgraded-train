@@ -57,7 +57,7 @@ struct UnitVec3
     data::Tuple{Float64,Float64,Float64}
 
     function UnitVec3(x::Float64, y::Float64, z::Float64)
-        @assert x^2 + y^2 + z^2 ≈ 1
+        @assert sqrt(x^2 + y^2 + z^2) ≈ 1
 
         new((x, y, z))
     end
@@ -85,11 +85,7 @@ dot(v1::UnitVec3, v2::Vec3)::Float64 = sum(v1.data .* v2.data)
 
 dot(v1::Vec3, v2::UnitVec3)::Float64 = sum(v1.data .* v2.data)
 
-cross(v1::UnitVec3, v2::UnitVec3)::UnitVec3 = UnitVec3(
-    v1.data[2] * v2.data[3] - v1.data[3] * v2.data[2],
-    v1.data[3] * v2.data[1] - v1.data[1] * v2.data[3],
-    v1.data[1] * v2.data[2] - v1.data[2] * v2.data[1],
-)
+cross(v1::UnitVec3, v2::UnitVec3)::Vec3 = cross(as_vec3(v1), as_vec3(v2))
 
 cross(v1::UnitVec3, v2::Vec3)::Vec3 = cross(as_vec3(v1), v2)
 

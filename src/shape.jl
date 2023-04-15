@@ -204,8 +204,10 @@ function hit(triangle::Triangle, ray::Ray)::Union{HitRecord,Nothing}
     s1 = det(ray.origin - triangle.vertex, triangle.edge2, -as_vec3(ray.direction)) / d
     s2 = det(triangle.edge1, ray.origin - triangle.vertex, -as_vec3(ray.direction)) / d
     t = det(triangle.edge1, triangle.edge2, ray.origin - triangle.vertex) / d
-
-    if s1 < kEPS || s2 < kEPS || s1 + s2 > 1.0
+    if s1 < 0.0 || s1 > 1.0 || s2 < 0.0 || s2 > 1.0 || s1 + s2 < 0.0 || s1 + s2 > 1.0
+        return nothing
+    end
+    if t < kEPS
         return nothing
     end
 
@@ -248,19 +250,25 @@ end
 
 function hit(triangle::NormalTriangle, ray::Ray)::Union{HitRecord,Nothing}
     d = det(triangle.edge1, triangle.edge2, -as_vec3(ray.direction))
+    if abs(d) < kEPS
+        return nothing
+    end
 
     ov = ray.origin - triangle.vertex
 
     s1 = det(ov, triangle.edge2, -as_vec3(ray.direction)) / d
     s2 = det(triangle.edge1, ov, -as_vec3(ray.direction)) / d
     t = det(triangle.edge1, triangle.edge2, ov) / d
-    if s1 < 0.0 || s2 < 0.0 || s1 + s2 > 1.0
+    if s1 < 0.0 || s1 > 1.0 || s2 < 0.0 || s2 > 1.0 || s1 + s2 < 0.0 || s1 + s2 > 1.0
+        return nothing
+    end
+    if t < kEPS
         return nothing
     end
 
     return HitRecord(
         ray.origin + t * ray.direction,
-        normalize(cross(triangle.edge1, triangle.edge2)),
+        normalat(triangle, s1, s2),
         t,
     )
 end

@@ -15,7 +15,7 @@ end
 
 struct Scene
     camera::Camera
-    screensize::Int
+    screensize::Float64
     meshes::Vector{Mesh}
 end
 
