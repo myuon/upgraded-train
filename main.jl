@@ -59,10 +59,10 @@ function main()
         Camera(
             Vec3(0.0, 1.0, 5.0),
             normalize(Vec3(0.0, 1.0, 0.0)),
-            normalize(Vec3(0.0, -0.05, -1.0)),
+            normalize(Vec3(0.0, 0.0, -1.0)),
             4,
         ),
-        2.5,
+        2.8,
         meshes,
     )
 
