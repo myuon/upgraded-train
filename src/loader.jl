@@ -2,6 +2,8 @@ module Loaders
 
 import ...Vectors
 
+using ...PathUtils: change_base_path
+
 mutable struct Object
     name::String
     material::String
@@ -56,11 +58,6 @@ function load_obj(filename::String)
     objects[object.name] = object
 
     return objects, materials
-end
-
-function change_base_path(filepath::String, new_base::String)
-    dir, _ = splitdir(filepath)
-    return joinpath(dir, new_base)
 end
 
 mutable struct Material

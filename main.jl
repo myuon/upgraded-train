@@ -1,6 +1,8 @@
+include("src/util.jl")
 include("src/vector.jl")
 include("src/image.jl")
 include("src/loader.jl")
+include("src/loader_mitsuba.jl")
 include("src/ray.jl")
 include("src/shape.jl")
 include("src/renderer.jl")
@@ -12,46 +14,81 @@ using .Loaders: load_obj
 using .Renderers
 using .Shapes
 using .Rays
+using .MitsubaLoaders: load_scene
+using .PathUtils: change_base_path
 
 const spp = parse(Int, get(ENV, "SPP", "4"))
 const enable_NEE = get(ENV, "ENABLE_NEE", "true") == "true"
 const enable_TONE_MAP = get(ENV, "ENABLE_TONE_MAP", "true") == "true"
 const enable_DEBUG_HIT_NORMAL = get(ENV, "ENABLE_DEBUG_HIT_NORMAL", "false") == "true"
 const disable_SHADING_NORMAL = get(ENV, "DISABLE_SHADING_NORMAL", "false") == "true"
-const OBJ_FILE = get(ENV, "OBJ_FILE", "assets/test.obj")
+const OBJ_FILE = get(ENV, "OBJ_FILE", "")
+const MITSU_FILE = get(ENV, "MITSU_FILE", "")
+
+import EzXML
 
 function main()
-    objects, materials = load_obj(OBJ_FILE)
+    if MITSU_FILE != ""
+        shapes, bsdfs = load_scene(MITSU_FILE)
 
-    meshes = Mesh[]
-    for (name, object) in objects
-        material = materials[name]
-        color = RGB(material.Ka[1], material.Ka[2], material.Ka[3])
-        ni = 1.0
-        if length(material.Ke) == 3
-            emission = RGB(material.Ke[1], material.Ke[2], material.Ke[3])
-        else
-            emission = RGB(0.0, 0.0, 0.0)
-        end
-        if material.illum == 5
-            reflection = specular
-            color = RGB(1.0, 1.0, 1.0)
-        elseif material.illum == 7
-            reflection = refractive
-            color = RGB(1.0, 1.0, 1.0)
-            ni = material.Ni
-        else
-            reflection = diffuse
-        end
+        meshes = Mesh[]
+        for (_, shape) in shapes
+            objects, _ = load_obj(change_base_path(MITSU_FILE, shape.objfile))
+            object = objects[""]
+            bsdf = bsdfs[shape.bsdfid]
 
-        if length(object.faces) == 0
-            continue
-        end
+            color = RGB(bsdf.reflectance[1], bsdf.reflectance[2], bsdf.reflectance[3])
+            emission = RGB(bsdf.k[1], bsdf.k[2], bsdf.k[3])
+            ni = 1.0
 
-        if length(object.normals) > 0 && !disable_SHADING_NORMAL
-            push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection, ni))
-        else
-            push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
+            if bsdf.type == "diffuse"
+                reflection = diffuse
+            elseif bsdf.type == "dielectric"
+                reflection = refractive
+                ni = bsdf.ior
+            elseif bsdf.type == "roughconductor"
+                reflection = specular
+            end
+
+            if length(object.normals) > 0 && !disable_SHADING_NORMAL
+                push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection, ni))
+            else
+                push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
+            end
+        end
+    elseif OBJ_FILE != ""
+        objects, materials = load_obj(OBJ_FILE)
+
+        meshes = Mesh[]
+        for (name, object) in objects
+            material = materials[name]
+            color = RGB(material.Ka[1], material.Ka[2], material.Ka[3])
+            ni = 1.0
+            if length(material.Ke) == 3
+                emission = RGB(material.Ke[1], material.Ke[2], material.Ke[3])
+            else
+                emission = RGB(0.0, 0.0, 0.0)
+            end
+            if material.illum == 5
+                reflection = specular
+                color = RGB(1.0, 1.0, 1.0)
+            elseif material.illum == 7
+                reflection = refractive
+                color = RGB(1.0, 1.0, 1.0)
+                ni = material.Ni
+            else
+                reflection = diffuse
+            end
+
+            if length(object.faces) == 0
+                continue
+            end
+
+            if length(object.normals) > 0 && !disable_SHADING_NORMAL
+                push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection, ni))
+            else
+                push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
+            end
         end
     end
 
