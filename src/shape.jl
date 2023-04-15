@@ -360,8 +360,9 @@ struct Mesh
     color::RGB
     emit::RGB
     reflection::Reflection
+    ni::Float64
 
-    function Mesh(faces::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection)
+    function Mesh(faces::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection, ni::Float64)
         triangles = Vector{Triangle}()
         for face in faces
             origin = face[1]
@@ -372,10 +373,10 @@ struct Mesh
             end
         end
 
-        return new(false, triangles, [], AABB(triangles), color, emission, reflection)
+        return new(false, triangles, [], AABB(triangles), color, emission, reflection, ni)
     end
 
-    function Mesh(faces::Vector{Vector{Vec3}}, normals::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection)
+    function Mesh(faces::Vector{Vector{Vec3}}, normals::Vector{Vector{Vec3}}, color::RGB, emission::RGB, reflection::Reflection, ni::Float64)
         triangles = Vector{NormalTriangle}()
         for i in 1:length(faces)
             face = faces[i]
@@ -402,7 +403,7 @@ struct Mesh
             end
         end
 
-        return new(true, [], triangles, AABB(triangles), color, emission, reflection)
+        return new(true, [], triangles, AABB(triangles), color, emission, reflection, ni)
     end
 end
 

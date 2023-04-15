@@ -26,6 +26,7 @@ function main()
     for (name, object) in objects
         material = materials[name]
         color = RGB(material.Ka[1], material.Ka[2], material.Ka[3])
+        ni = 1.0
         if length(material.Ke) == 3
             emission = RGB(material.Ke[1], material.Ke[2], material.Ke[3])
         else
@@ -37,6 +38,7 @@ function main()
         elseif material.illum == 7
             reflection = refractive
             color = RGB(1.0, 1.0, 1.0)
+            ni = material.Ni
         else
             reflection = diffuse
         end
@@ -46,9 +48,9 @@ function main()
         end
 
         if length(object.normals) > 0
-            push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection))
+            push!(meshes, Mesh(object.faces, object.normals, color, emission, reflection, ni))
         else
-            push!(meshes, Mesh(object.faces, color, emission, reflection))
+            push!(meshes, Mesh(object.faces, color, emission, reflection, ni))
         end
     end
 

@@ -37,7 +37,7 @@ function sample_lambertian_cosine_pdf(normal::UnitVec3)::UnitVec3
     )
 end
 
-function nextpath(reflection::Reflection, ray::Ray, ht::HitRecord, orientnormal::UnitVec3)::Tuple{Float64,Ray}
+function nextpath(reflection::Reflection, ray::Ray, ht::HitRecord, orientnormal::UnitVec3, nt::Float64)::Tuple{Float64,Ray}
     if reflection == diffuse
         1.0, Ray(ht.point, sample_lambertian_cosine_pdf(orientnormal))
     elseif reflection == specular
@@ -47,7 +47,6 @@ function nextpath(reflection::Reflection, ray::Ray, ht::HitRecord, orientnormal:
         into = dot(ht.normal, orientnormal) > 0
 
         nc = 1.0
-        nt = 1.5
         nnt = into ? nc / nt : nt / nc
         ddn = dot(ray.direction, orientnormal)
         cos2t = 1.0 - nnt^2 * (1.0 - ddn^2)

@@ -119,7 +119,7 @@ function render(
                         break
                     end
 
-                    weightdelta, ray = nextpath(object.reflection, ray, ht, orientnormal)
+                    weightdelta, ray = nextpath(object.reflection, ray, ht, orientnormal, object.ni)
                     weight *= object.color * weightdelta / russian_roulette
                     hr = hit_in_scene(scene, ray)
                 end
