@@ -27,6 +27,28 @@ const MITSU_FILE = get(ENV, "MITSU_FILE", "")
 
 import EzXML
 
+function icosahedron(center::Tuple{Float64,Float64,Float64}, radius::Float64)::Vector{Vec3}
+    phi = (1.0 + sqrt(5.0)) / 2.0
+    invnorm = 1.0 / sqrt(phi * phi + 1.0)
+
+    vxs = [
+        Vec3(-invnorm, phi * invnorm, 0.0),
+        Vec3(invnorm, phi * invnorm, 0.0),
+        Vec3(-invnorm, -phi * invnorm, 0.0),
+        Vec3(invnorm, -phi * invnorm, 0.0), Vec3(0.0, -invnorm, phi * invnorm),
+        Vec3(0.0, invnorm, phi * invnorm),
+        Vec3(0.0, -invnorm, -phi * invnorm),
+        Vec3(0.0, invnorm, -phi * invnorm), Vec3(phi * invnorm, 0.0, -invnorm),
+        Vec3(phi * invnorm, 0.0, invnorm),
+        Vec3(-phi * invnorm, 0.0, -invnorm),
+        Vec3(-phi * invnorm, 0.0, invnorm),
+    ]
+
+    centerv = Vec3(center...)
+
+    return [centerv + radius * v for v in vxs]
+end
+
 function main()
     if MITSU_FILE != ""
         shapes, bsdfs = load_scene(MITSU_FILE)
@@ -84,6 +106,29 @@ function main()
                     ]],
                     color, emission, reflection, ni)
                 )
+            elseif shape.type == "sphere"
+                bsdf = bsdfs[shape.bsdfid]
+
+                color = RGB(1.0, 1.0, 1.0)
+                emission = RGB(shape.radiance[1], shape.radiance[2], shape.radiance[3])
+                ni = 1.0
+
+                if bsdf.type == "diffuse"
+                    reflection = diffuse
+                elseif bsdf.type == "dielectric"
+                    reflection = refractive
+                    ni = bsdf.ior
+                elseif bsdf.type == "roughconductor"
+                    reflection = specular
+                end
+
+                push!(meshes, Mesh(
+                    [icosahedron(shape.spherecenter, shape.sphereradius)],
+                    color,
+                    emission,
+                    reflection,
+                    ni,
+                ))
             end
         end
 
