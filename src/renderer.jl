@@ -98,9 +98,6 @@ function render(
                     if !enable_NEE || !prev_nee_contributed
                         result.data[i, j] += object.emit * weight
                     end
-                    if count >= 3
-                        break
-                    end
                     if enable_NEE && object.reflection == diffuse
                         light, (lightp, lightnormal) = sample_on_light(scene)
                         shadowray = Ray(ht.point, normalize(lightp - ht.point))

@@ -198,15 +198,6 @@ function vertices_triangle(triangle::Triangle)::Tuple{Vec3,Vec3,Vec3}
     return triangle.vertex, triangle.vertex + triangle.edge1, triangle.vertex + triangle.edge2
 end
 
-function det(a::Vec3, b::Vec3, c::Vec3)::Float64
-    return a.data[1] * b.data[2] * c.data[3] +
-           a.data[2] * b.data[3] * c.data[1] +
-           a.data[3] * b.data[1] * c.data[2] -
-           a.data[3] * b.data[2] * c.data[1] -
-           a.data[2] * b.data[1] * c.data[3] -
-           a.data[1] * b.data[3] * c.data[2]
-end
-
 function hit(triangle::Triangle, ray::Ray)::Union{HitRecord,Nothing}
     d = det(triangle.edge1, triangle.edge2, -as_vec3(ray.direction))
 
@@ -215,9 +206,6 @@ function hit(triangle::Triangle, ray::Ray)::Union{HitRecord,Nothing}
     t = det(triangle.edge1, triangle.edge2, ray.origin - triangle.vertex) / d
 
     if s1 < kEPS || s2 < kEPS || s1 + s2 > 1.0
-        return nothing
-    end
-    if abs(t) < kEPS
         return nothing
     end
 
@@ -249,26 +237,30 @@ function normalat(triangle::NormalTriangle, s1::Float64, s2::Float64)::UnitVec3
     return normalize(s1 * triangle.vn1 + s2 * triangle.vn2 + (1 - s1 - s2) * triangle.vn0)
 end
 
+function det(v1::Vec3, v2::Vec3, v3::Vec3)::Float64
+    return v1.data[1] * v2.data[2] * v3.data[3] +
+           v1.data[2] * v2.data[3] * v3.data[1] +
+           v1.data[3] * v2.data[1] * v3.data[2] -
+           v1.data[3] * v2.data[2] * v3.data[1] -
+           v1.data[2] * v2.data[1] * v3.data[3] -
+           v1.data[1] * v2.data[3] * v3.data[2]
+end
+
 function hit(triangle::NormalTriangle, ray::Ray)::Union{HitRecord,Nothing}
     d = det(triangle.edge1, triangle.edge2, -as_vec3(ray.direction))
-    if d < kEPS
-        return nothing
-    end
 
-    s1 = det(ray.origin - triangle.vertex, triangle.edge2, -as_vec3(ray.direction)) / d
-    s2 = det(triangle.edge1, ray.origin - triangle.vertex, -as_vec3(ray.direction)) / d
-    t = det(triangle.edge1, triangle.edge2, ray.origin - triangle.vertex) / d
+    ov = ray.origin - triangle.vertex
 
-    if s1 < kEPS || s2 < kEPS || s1 + s2 > 1.0
-        return nothing
-    end
-    if abs(t) < kEPS
+    s1 = det(ov, triangle.edge2, -as_vec3(ray.direction)) / d
+    s2 = det(triangle.edge1, ov, -as_vec3(ray.direction)) / d
+    t = det(triangle.edge1, triangle.edge2, ov) / d
+    if s1 < 0.0 || s2 < 0.0 || s1 + s2 > 1.0
         return nothing
     end
 
     return HitRecord(
         ray.origin + t * ray.direction,
-        normalat(triangle, s1, s2),
+        normalize(cross(triangle.edge1, triangle.edge2)),
         t,
     )
 end
@@ -437,7 +429,11 @@ function is_light(mesh::Mesh)::Bool
 end
 
 function sample_on(mesh::Mesh)::Tuple{Vec3,UnitVec3}
-    triangle = (mesh.hasnormal ? mesh.ntriangles : mesh.triangles)[rand(1:length(mesh.ntriangles))]
+    if mesh.hasnormal
+        triangle = mesh.ntriangles[rand(1:length(mesh.ntriangles))]
+    else
+        triangle = mesh.triangles[rand(1:length(mesh.triangles))]
+    end
     s1 = rand()
     s2 = rand()
     normal = mesh.hasnormal ? normalat(triangle, s1, s2) : normalize(cross(triangle.edge1, triangle.edge2))

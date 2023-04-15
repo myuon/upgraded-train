@@ -19,7 +19,7 @@ struct Vec3
     end
 end
 
-as_vector(v::Vec3)::Tuple{Float64,Float64,Float64} = v.data
+as_vector(v::Vec3)::Vector{Float64} = [v.data[1], v.data[2], v.data[3]]
 
 x(v::Vec3)::Float64 = v.data[1]
 
