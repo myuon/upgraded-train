@@ -27,26 +27,57 @@ const MITSU_FILE = get(ENV, "MITSU_FILE", "")
 
 import EzXML
 
-function icosahedron(center::Tuple{Float64,Float64,Float64}, radius::Float64)::Vector{Vec3}
-    phi = (1.0 + sqrt(5.0)) / 2.0
-    invnorm = 1.0 / sqrt(phi * phi + 1.0)
+function spheremesh(center::Tuple{Float64,Float64,Float64}, radius::Float64)::Vector{Vector{Vec3}}
+    vertices = Vector{Vec3}()
+    faces = Vector{Vector{Vec3}}()
 
-    vxs = [
-        Vec3(-invnorm, phi * invnorm, 0.0),
-        Vec3(invnorm, phi * invnorm, 0.0),
-        Vec3(-invnorm, -phi * invnorm, 0.0),
-        Vec3(invnorm, -phi * invnorm, 0.0), Vec3(0.0, -invnorm, phi * invnorm),
-        Vec3(0.0, invnorm, phi * invnorm),
-        Vec3(0.0, -invnorm, -phi * invnorm),
-        Vec3(0.0, invnorm, -phi * invnorm), Vec3(phi * invnorm, 0.0, -invnorm),
-        Vec3(phi * invnorm, 0.0, invnorm),
-        Vec3(-phi * invnorm, 0.0, -invnorm),
-        Vec3(-phi * invnorm, 0.0, invnorm),
-    ]
+    subdivisions = 9
 
-    centerv = Vec3(center...)
+    for i in 0:subdivisions
+        for j in 0:subdivisions
+            u = i / subdivisions
+            v = j / subdivisions
 
-    return [centerv + radius * v for v in vxs]
+            theta = 2π * u
+            phi = π * v
+
+            x = cos(theta) * sin(phi)
+            y = sin(theta) * sin(phi)
+            z = cos(phi)
+
+            push!(vertices, Vec3(x, y, z))
+        end
+    end
+
+    vertices = [v * radius + Vec3(center...) for v in vertices]
+
+    for i in 0:(subdivisions-1)
+        for j in 0:(subdivisions-1)
+            a = i * (subdivisions + 1) + j + 1
+            b = i * (subdivisions + 1) + j + 2
+            c = (i + 1) * (subdivisions + 1) + j + 1
+            d = (i + 1) * (subdivisions + 1) + j + 2
+
+            # ?
+            if vertices[a] == vertices[c]
+                continue
+            end
+            if vertices[b] == vertices[d]
+                continue
+            end
+
+            @assert vertices[a] != vertices[b]
+            @assert vertices[a] != vertices[c]
+            @assert vertices[b] != vertices[c]
+            @assert vertices[b] != vertices[d]
+            @assert vertices[c] != vertices[d]
+
+            push!(faces, [vertices[a], vertices[b], vertices[c]])
+            push!(faces, [vertices[b], vertices[d], vertices[c]])
+        end
+    end
+
+    return faces
 end
 
 function main()
@@ -123,7 +154,7 @@ function main()
                 end
 
                 push!(meshes, Mesh(
-                    [icosahedron(shape.spherecenter, shape.sphereradius)],
+                    spheremesh(shape.spherecenter, shape.sphereradius),
                     color,
                     emission,
                     reflection,

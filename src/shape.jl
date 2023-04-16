@@ -192,6 +192,10 @@ struct Triangle
     vertex::Vec3
     edge1::Vec3
     edge2::Vec3
+
+    function Triangle(vertex::Vec3, edge1::Vec3, edge2::Vec3)
+        return new(vertex, edge1, edge2)
+    end
 end
 
 function vertices_triangle(triangle::Triangle)::Tuple{Vec3,Vec3,Vec3}

@@ -6,6 +6,7 @@ import Base: *
 import Base: length
 import Base: min
 import Base: max
+import Base: isnan
 
 struct Vec3
     data::Tuple{Float64,Float64,Float64}
@@ -52,6 +53,8 @@ cross(v1::Vec3, v2::Vec3)::Vec3 = Vec3(
 min(v1::Vec3, v2::Vec3)::Vec3 = Vec3(min.(v1.data, v2.data))
 
 max(v1::Vec3, v2::Vec3)::Vec3 = Vec3(max.(v1.data, v2.data))
+
+isnan(v::Vec3)::Bool = any(isnan.(v.data))
 
 struct UnitVec3
     data::Tuple{Float64,Float64,Float64}
